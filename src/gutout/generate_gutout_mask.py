@@ -5,6 +5,7 @@ import torch
 from torch.autograd import Function
 from torchvision import models
 import matplotlib.pyplot as plt
+
 class FeatureExtractor():
     """ Class for extracting activations and 
     registering gradients from targetted intermediate layers """
@@ -232,13 +233,13 @@ def deprocess_image(img):
     img = np.clip(img, 0, 1)
     return np.uint8(img*255)
 
-def generate_gutout_mask(threshold,mask):
+def generate_gutout_mask(threshold, mask):
     """threshold is a percentage, pixels with attention larger than threshold*max(atttention) will be masked"""
     attention_threshold = np.min(mask) + threshold * (np.max(mask)-np.min(mask))
     gutout_mask=np.less(mask,attention_threshold).astype(np.float32)
     return gutout_mask
 
-def apply_gutout_mask(image,mask):
+def apply_gutout_mask(image, mask):
     return image * np.repeat(np.expand_dims(mask,-1),3,-1)
 
 def show_images(images):
@@ -269,9 +270,9 @@ if __name__ == '__main__':
     # Can work with any model, but it assumes that the model has a
     # feature method, and a classifier method,
     # as in the VGG models in torchvision.
-    model = models.resnet50(pretrained=True)
+    model = models.resnet18(pretrained=True)
     grad_cam = GradCam(model=model, feature_module=model.layer4, \
-                       target_layer_names=["2"], use_cuda=args.use_cuda)
+                       target_layer_names=["1"], use_cuda=args.use_cuda)
 
     img = cv2.imread(args.image_path, 1)
     img = np.float32(cv2.resize(img, (224, 224))) / 255
@@ -284,8 +285,8 @@ if __name__ == '__main__':
 
     cam_on_image = show_cam_on_image(img, mask)
 
-    gutout_mask = generate_gutout_mask(0.7,mask)
-    img_after_gutout = apply_gutout_mask(img,gutout_mask)
+    gutout_mask = generate_gutout_mask(0.7, mask)
+    img_after_gutout = apply_gutout_mask(img, gutout_mask)
 
     show_images([img,cam_on_image,img_after_gutout])
     # gb_model = GuidedBackpropReLUModel(model=model, use_cuda=args.use_cuda)
