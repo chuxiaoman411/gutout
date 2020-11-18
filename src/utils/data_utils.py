@@ -1,10 +1,10 @@
 
 import torch
 import numpy as np
-from cutout import Cutout
+from .cutout import Cutout
 from torchvision import datasets, transforms
 
-
+from src.gutout import Gutout
 
 def get_datasets(args):
     if args.dataset == 'svhn':
@@ -23,6 +23,12 @@ def get_datasets(args):
     if args.cutout:
         train_transform.transforms.append(Cutout(n_holes=args.n_holes, length=args.length))
 
+    if args.gutout:
+        if args.dataset == 'cifar10':
+            gutout_augmentation = Gutout(model_path=args.model_path,model_num_classes=10, threshold=args.threshold, use_cuda=args.use_cuda)
+        elif args.dataset == 'cifar100':
+            gutout_augmentation = Gutout(model_path=args.model_path,model_num_classes=100, threshold=args.threshold, use_cuda=args.use_cuda)
+        train_transform.transforms.append(gutout_augmentation)
 
     test_transform = transforms.Compose([
         transforms.ToTensor(),

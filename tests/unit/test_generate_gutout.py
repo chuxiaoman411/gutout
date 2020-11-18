@@ -11,7 +11,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 
-from src.generate_gutout_mask import get_args, GradCam, preprocess_image, show_cam_on_image, apply_gutout_mask, show_images, generate_gutout_mask
+from src.gutout.generate_gutout_mask import get_args, GradCam, preprocess_image, show_cam_on_image, apply_gutout_mask, show_images, generate_gutout_mask
 
 
 def test_generate_gutout():
@@ -24,7 +24,7 @@ def test_generate_gutout():
 
     args = get_args()
     if args.image_path is None:
-        args.image_path="./basic_scripts/blueno.jpeg"
+        args.image_path=r"tests\unit\blueno.jpeg"
     # Can work with any model, but it assumes that the model has a
     # feature method, and a classifier method,
     # as in the VGG models in torchvision.

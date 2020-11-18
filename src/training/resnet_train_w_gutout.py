@@ -2,6 +2,8 @@
 # run resnet_train.py --dataset cifar100 --model resnet18 --data_augmentation --cutout --length 8
 # run resnet_train.py --dataset svhn --model wideresnet --learning_rate 0.01 --epochs 160 --cutout --length 20
 
+import os
+import sys
 import pdb
 import argparse
 import numpy as np
@@ -16,11 +18,16 @@ from torch.optim.lr_scheduler import MultiStepLR
 from torchvision.utils import make_grid
 from torchvision import datasets, transforms
 
-from misc import CSVLogger
-from cutout import Cutout
-from gutout import Gutout
 
-from resnet import ResNet18
+sys.path.append(os.path.join(os.path.dirname(__file__)))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
+
+
+from src.utils.misc import CSVLogger
+from src.utils.cutout import Cutout
+from src.gutout import Gutout
+from src.utils.data_utils import get_dataloaders 
+from src.models.resnet import ResNet18
 # from model.wide_resnet import WideResNet
 
 # model_options = ['resnet18', 'wideresnet']
@@ -34,6 +41,8 @@ parser.add_argument('--model', '-a', default='resnet18',
                     choices=model_options)
 parser.add_argument('--batch_size', type=int, default=128,
                     help='input batch size for training (default: 128)')
+parser.add_argument('--num_workers', type=int, default=0,
+                    help='the number of workers for fetching data using the dataloaders (default: 4')
 parser.add_argument('--epochs', type=int, default=20,
                     help='number of epochs to train (default: 20)')
 parser.add_argument('--learning_rate', type=float, default=0.1,
@@ -90,13 +99,15 @@ train_transform.transforms.append(normalize)
 
 if args.cutout:
     train_transform.transforms.append(Cutout(n_holes=args.n_holes, length=args.length))
+
+    
 ##Gutout
 if args.gutout:
     if args.dataset == 'cifar10':
         Gutout = Gutout(model_path=args.model_path,model_num_classes=10, threshold=args.threshold, use_cuda=args.use_cuda)
     elif args.dataset == 'cifar100':
         Gutout = Gutout(model_path=args.model_path,model_num_classes=100, threshold=args.threshold, use_cuda=args.use_cuda)
-    # train_transform.transforms.append(Gutout)
+    train_transform.transforms.append(Gutout)
 
 test_transform = transforms.Compose([
     transforms.ToTensor(),
@@ -151,27 +162,22 @@ print("Dataset Prepared")
 #                                  download=True)
 
 # Data Loader (Input Pipeline)
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                           batch_size=args.batch_size,
-                                           shuffle=True,
-                                           pin_memory=True,
-                                           num_workers=0)
+# train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+#                                            batch_size=args.batch_size,
+#                                            shuffle=True,
+#                                            pin_memory=True,
+#                                            num_workers=args.num_workers)
 
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                          batch_size=args.batch_size,
-                                          shuffle=False,
-                                          pin_memory=True,
-                                          num_workers=0)
+# test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+#                                           batch_size=args.batch_size,
+#                                           shuffle=False,
+#                                           pin_memory=True,
+#                                           num_workers=args.num_workers)
+
+train_loader, test_loader = get_dataloaders(args)
 
 if args.model == 'resnet18':
     cnn = ResNet18(num_classes=num_classes)
-# elif args.model == 'wideresnet':
-#     if args.dataset == 'svhn':
-#         cnn = WideResNet(depth=16, num_classes=num_classes, widen_factor=8,
-#                          dropRate=0.4)
-#     else:
-#         cnn = WideResNet(depth=28, num_classes=num_classes, widen_factor=10,
-#                          dropRate=0.3)
 
 if args.use_cuda:
     cnn = cnn.cuda()
