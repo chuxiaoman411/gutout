@@ -4,3 +4,4 @@ gutout_with_bug
 cifar10_resnet18.csv
 __pycache__
 bash*
+checkpoints

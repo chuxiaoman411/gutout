@@ -43,6 +43,8 @@ parser.add_argument('--batch_size', type=int, default=128,
                     help='input batch size for training (default: 128)')
 parser.add_argument('--num_workers', type=int, default=0,
                     help='the number of workers for fetching data using the dataloaders (default: 4')
+parser.add_argument('--smoke_test', type=int, default=1,
+                    help='set this to 1 if debugging or to 0 if running full training session')
 parser.add_argument('--epochs', type=int, default=20,
                     help='number of epochs to train (default: 20)')
 parser.add_argument('--learning_rate', type=float, default=0.1,
@@ -71,6 +73,13 @@ parser.add_argument('--threshold', type=float, default=0.9,
                     help='threshold for gutout')   
                      
 args = parser.parse_args()
+
+max_num_batches = None
+if args.smoke_test == 1:
+    args.batch_size = 2
+    args.epochs = 3
+    max_num_batches = 2
+
 args.cuda = args.use_cuda
 cudnn.benchmark = True  # Should make training should go faster for large models
 
@@ -78,148 +87,37 @@ torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
-test_id = args.dataset + '_' + args.model
-
+os.makedirs("checkpoints/", exist_ok=True)
 print(args)
 
-# Image Preprocessing
-if args.dataset == 'svhn':
-    normalize = transforms.Normalize(mean=[x / 255.0 for x in[109.9, 109.7, 113.8]],
-                                     std=[x / 255.0 for x in [50.1, 50.6, 50.8]])
-else:
-    normalize = transforms.Normalize(mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
-                                     std=[x / 255.0 for x in [63.0, 62.1, 66.7]])
-
-train_transform = transforms.Compose([])
-if args.data_augmentation:
-    train_transform.transforms.append(transforms.RandomCrop(32, padding=4))
-    train_transform.transforms.append(transforms.RandomHorizontalFlip())
-train_transform.transforms.append(transforms.ToTensor())
-train_transform.transforms.append(normalize)
-
-if args.cutout:
-    train_transform.transforms.append(Cutout(n_holes=args.n_holes, length=args.length))
-
-    
-##Gutout
-if args.gutout:
-    if args.dataset == 'cifar10':
-        Gutout = Gutout(model_path=args.model_path,model_num_classes=10, threshold=args.threshold, use_cuda=args.use_cuda)
-    elif args.dataset == 'cifar100':
-        Gutout = Gutout(model_path=args.model_path,model_num_classes=100, threshold=args.threshold, use_cuda=args.use_cuda)
-    train_transform.transforms.append(Gutout)
-
-test_transform = transforms.Compose([
-    transforms.ToTensor(),
-    normalize])
-
-print("Start preparing dataset")
-if args.dataset == 'cifar10':
-    num_classes = 10
-    train_dataset = datasets.CIFAR10(root='data/',
-                                     train=True,
-                                     transform=train_transform,
-                                     download=True)
-
-    test_dataset = datasets.CIFAR10(root='data/',
-                                    train=False,
-                                    transform=test_transform,
-                                    download=True)
-elif args.dataset == 'cifar100':
-    num_classes = 100
-    train_dataset = datasets.CIFAR100(root='data/',
-                                      train=True,
-                                      transform=train_transform,
-                                      download=True)
-
-    test_dataset = datasets.CIFAR100(root='data/',
-                                     train=False,
-                                     transform=test_transform,
-                                     download=True)
-print("Prepared dataset:",train_dataset)
-print("Dataset Prepared")
-# elif args.dataset == 'svhn':
-#     num_classes = 10
-#     train_dataset = datasets.SVHN(root='data/',
-#                                   split='train',
-#                                   transform=train_transform,
-#                                   download=True)
-
-#     extra_dataset = datasets.SVHN(root='data/',
-#                                   split='extra',
-#                                   transform=train_transform,
-#                                   download=True)
-
-#     # Combine both training splits (https://arxiv.org/pdf/1605.07146.pdf)
-#     data = np.concatenate([train_dataset.data, extra_dataset.data], axis=0)
-#     labels = np.concatenate([train_dataset.labels, extra_dataset.labels], axis=0)
-#     train_dataset.data = data
-#     train_dataset.labels = labels
-
-#     test_dataset = datasets.SVHN(root='data/',
-#                                  split='test',
-#                                  transform=test_transform,
-#                                  download=True)
-
-# Data Loader (Input Pipeline)
-# train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-#                                            batch_size=args.batch_size,
-#                                            shuffle=True,
-#                                            pin_memory=True,
-#                                            num_workers=args.num_workers)
-
-# test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-#                                           batch_size=args.batch_size,
-#                                           shuffle=False,
-#                                           pin_memory=True,
-#                                           num_workers=args.num_workers)
-
+# get dataloaders
 train_loader, test_loader = get_dataloaders(args)
+num_classes = 10 if args.dataset == "cfar10" else 100
 
+# create model
 if args.model == 'resnet18':
-    cnn = ResNet18(num_classes=num_classes)
+    model = ResNet18(num_classes=num_classes)
 
-if args.use_cuda:
-    cnn = cnn.cuda()
-    criterion = nn.CrossEntropyLoss().cuda()
-else:
-    cnn = cnn
-    criterion = nn.CrossEntropyLoss()
-cnn_optimizer = torch.optim.SGD(cnn.parameters(), lr=args.learning_rate,
+
+# create optimizer, loss function and schedualer
+optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate,
                                 momentum=0.9, nesterov=True, weight_decay=5e-4)
+scheduler = MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
+criterion = nn.CrossEntropyLoss()
 
-if args.dataset == 'svhn':
-    scheduler = MultiStepLR(cnn_optimizer, milestones=[80, 120], gamma=0.1)
-else:
-    scheduler = MultiStepLR(cnn_optimizer, milestones=[60, 120, 160], gamma=0.2)
+# cast to gpu if needed
+if args.use_cuda:
+    model = model.cuda()
+    criterion.cuda()
 
+# create csv logger
+test_id = args.dataset + '_' + args.model
 filename = test_id + '.csv'
 csv_logger = CSVLogger(args=args, fieldnames=['epoch', 'train_acc', 'test_acc'], filename=filename)
 
 
-def test(loader):
-    cnn.eval()    # Change model to 'eval' mode (BN uses moving mean/var).
-    correct = 0.
-    total = 0.
-    for images, labels in loader:
-        if args.use_cuda:
-            images = images.cuda()
-            labels = labels.cuda()
-
-        with torch.no_grad():
-            pred = cnn(images)
-
-        pred = torch.max(pred.data, 1)[1]
-        total += labels.size(0)
-        correct += (pred == labels).sum().item()
-
-    val_acc = correct / total
-    cnn.train()
-    return val_acc
-
-
-for epoch in range(args.epochs):
-
+def train(model, criterion, optimizer, train_loader, max_num_batches=None):
+    model.train()
     xentropy_loss_avg = 0.
     correct = 0.
     total = 0
@@ -233,12 +131,12 @@ for epoch in range(args.epochs):
             images = images.cuda()
             labels = labels.cuda()
 
-        cnn_optimizer.zero_grad()
-        pred = cnn(images)
+        optimizer.zero_grad()
+        pred = model(images)
 
         xentropy_loss = criterion(pred, labels)
         xentropy_loss.backward()
-        cnn_optimizer.step()
+        optimizer.step()
 
         xentropy_loss_avg += xentropy_loss.item()
 
@@ -252,16 +150,50 @@ for epoch in range(args.epochs):
             xentropy='%.3f' % (xentropy_loss_avg / (i + 1)),
             acc='%.3f' % accuracy)
 
+        if max_num_batches is not None and i >= max_num_batches:
+            break
+
+    return accuracy
+
+def test(model, test_loader, max_num_batches=None):
+    model.eval()    # Change model to 'eval' mode (BN uses moving mean/var).
+    correct = 0.
+    total = 0.
+    i = 0
+    for images, labels in test_loader:
+        if args.use_cuda:
+            images = images.cuda()
+            labels = labels.cuda()
+
+        with torch.no_grad():
+            pred = model(images)
+
+        pred = torch.max(pred.data, 1)[1]
+        total += labels.size(0)
+        correct += (pred == labels).sum().item()
         i += 1
 
-    test_acc = test(test_loader)
+        if max_num_batches is not None and i >= max_num_batches:
+            break
+    val_acc = correct / total
+    return val_acc
+
+
+best_acc = -1
+# run training loop
+for epoch in range(args.epochs):
+    train_accuracy = train(model, criterion, optimizer, train_loader, max_num_batches)
+    test_acc = test(model, test_loader, max_num_batches)
+    is_best = test_acc > best_acc
     tqdm.write('test_acc: %.3f' % (test_acc))
 
     #scheduler.step(epoch)  # Use this line for PyTorch <1.4
     scheduler.step()     # Use this line for PyTorch >=1.4
 
-    row = {'epoch': str(epoch), 'train_acc': str(accuracy), 'test_acc': str(test_acc)}
+    row = {'epoch': str(epoch), 'train_acc': str(train_accuracy), 'test_acc': str(test_acc)}
     csv_logger.writerow(row)
+    if is_best:
+        torch.save(model.state_dict(), 'checkpoints/' + test_id + '.pth')
 
-torch.save(cnn.state_dict(), 'checkpoints/' + test_id + '.pt')
+
 csv_logger.close()
