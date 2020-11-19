@@ -2,6 +2,7 @@ import argparse
 import cv2
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch.autograd import Function
 from torchvision import models
 import matplotlib.pyplot as plt
@@ -139,6 +140,74 @@ class GradCam:
         return cam
 
 
+
+class BatchGradCam:
+    def __init__(self, model, feature_module, target_layer_names, use_cuda):
+        self.model = model
+        self.feature_module = feature_module
+        self.model.eval()
+        self.cuda = use_cuda
+        if self.cuda:
+            self.model = model.cuda()
+
+        self.extractor = ModelOutputs(self.model, self.feature_module, target_layer_names)
+
+    def forward(self, input):
+        return self.model(input)
+
+    def __call__(self, input, index=None):
+        if self.cuda:
+            features, output = self.extractor(input.cuda())
+        else:
+            features, output = self.extractor(input)
+
+        if index == None:
+            predicted_labes = torch.max(output.data, 1)[1] # TODO perhaps try different labels (such as worst predictions)
+
+        # create one hot vector to only use the specific
+        one_hot = torch.zeros_like(output)
+        for i, label in enumerate(predicted_labes):
+            one_hot[i, label] = 1
+        one_hot.requires_grad_(True)
+
+        # one_hot = np.zeros((1, output.size()[-1]), dtype=np.float32)
+        # one_hot[0][index] = 1
+        # one_hot = torch.from_numpy(one_hot).requires_grad_(True)
+
+        # if self.cuda:
+        #     proxy_loss = torch.sum(one_hot.cuda() * output)
+        # else:
+        #     proxy_loss = torch.sum(one_hot * output)
+
+        # prepare for backward
+        self.feature_module.zero_grad()
+        self.model.zero_grad()
+
+        # extract gradients and features
+        proxy_loss = torch.sum(one_hot.cuda() * output) if self.cuda else torch.sum(one_hot * output)
+        proxy_loss.backward(retain_graph=True)
+        grads_val = self.extractor.get_gradients()[-1]
+        target = features[-1]
+
+        # calculate grad cam
+        weights = torch.mean(grads_val, (2, 3), keepdim=True)
+        grad_weighted_cam = torch.sum(target * weights, 1, keepdim=True)
+
+        # clip
+        grad_weighted_cam = torch.clamp(grad_weighted_cam, 0)
+
+        # resize
+        grad_weighted_cam = F.interpolate(grad_weighted_cam, input.shape[2:])
+
+        # batch normalize heat map - to 0-1
+        grad_weighted_cam = grad_weighted_cam / torch.max(grad_weighted_cam)
+
+        # remove gradients from grad cam
+        grad_weighted_cam = grad_weighted_cam.detach()
+
+        return grad_weighted_cam
+
+
 class GuidedBackpropReLU(Function):
 
     @staticmethod
@@ -238,6 +307,24 @@ def generate_gutout_mask(threshold, mask):
     attention_threshold = np.min(mask) + threshold * (np.max(mask)-np.min(mask))
     gutout_mask=np.less(mask,attention_threshold).astype(np.float32)
     return gutout_mask
+
+
+def generate_batch_gutout_mask(threshold, masks, filter_out="greater_than_thresh"):
+    """threshold is a percentage, pixels with attention larger than threshold*max(atttention) will be masked"""
+    # attention_threshold = np.min(mask) + threshold * (np.max(mask)-np.min(mask))
+
+    if filter_out == "greater_than_thresh":
+        gutout_mask = (masks <= threshold).float()
+    elif filter_out == "less_than_thresh":
+        gutout_mask = (masks >= threshold).float()
+    else:
+        raise ValueError("recieved unsuppored value for 'filter_out' entry, allowed values are: [greater_than_thresh, less_than_thresh]")
+
+    return gutout_mask
+
+def apply_batch_gutout_mask(images, masks):
+    return images * masks
+    
 
 def apply_gutout_mask(image, mask):
     return image * np.repeat(np.expand_dims(mask,-1),3,-1)

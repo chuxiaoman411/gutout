@@ -1,4 +1,4 @@
-from src.models.resnet import ResNet18
+from src.models.resnet import resnet18
 
 class FeatureExtractor():
     """ Class for extracting activations and 

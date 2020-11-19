@@ -1,8 +1,8 @@
 import torch
 import numpy as np
 
-from src.models.resnet import ResNet18
-from .gutout_utilities import FeatureExtractor,ModelOutputs,GradCam
+from src.models.resnet import resnet18
+from .gutout_utilities import FeatureExtractor, ModelOutputs, GradCam
 
 class Gutout(object):
 

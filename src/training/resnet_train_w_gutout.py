@@ -26,11 +26,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from src.utils.misc import CSVLogger
 from src.utils.cutout import Cutout
 from src.gutout import Gutout
+from src.gutout.generate_gutout_mask import BatchGradCam, generate_batch_gutout_mask, apply_batch_gutout_mask
 from src.utils.data_utils import get_dataloaders 
-from src.models.resnet import ResNet18
-# from model.wide_resnet import WideResNet
+from src.models.resnet import resnet18
 
-# model_options = ['resnet18', 'wideresnet']
+
 model_options = ['resnet18']
 dataset_options = ['cifar10', 'cifar100', 'svhn']
 
@@ -92,11 +92,11 @@ print(args)
 
 # get dataloaders
 train_loader, test_loader = get_dataloaders(args)
-num_classes = 10 if args.dataset == "cfar10" else 100
+num_classes = 10 
 
 # create model
 if args.model == 'resnet18':
-    model = ResNet18(num_classes=num_classes)
+    model = resnet18(num_classes=num_classes)
 
 
 # create optimizer, loss function and schedualer
@@ -116,7 +116,14 @@ filename = test_id + '.csv'
 csv_logger = CSVLogger(args=args, fieldnames=['epoch', 'train_acc', 'test_acc'], filename=filename)
 
 
-def train(model, criterion, optimizer, train_loader, max_num_batches=None):
+def get_gutout(model, grad_cam, images, threshold):
+    masks = grad_cam(images)
+    gutout_masks = generate_batch_gutout_mask(threshold, masks)
+    img_after_gutout = apply_batch_gutout_mask(images, gutout_masks)
+
+    return img_after_gutout
+
+def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=None):
     model.train()
     xentropy_loss_avg = 0.
     correct = 0.
@@ -130,6 +137,9 @@ def train(model, criterion, optimizer, train_loader, max_num_batches=None):
         if args.use_cuda:
             images = images.cuda()
             labels = labels.cuda()
+
+        # create gutout
+        images = get_gutout(model, grad_cam, images, threshold=0.7)
 
         optimizer.zero_grad()
         pred = model(images)
@@ -181,8 +191,12 @@ def test(model, test_loader, max_num_batches=None):
 
 best_acc = -1
 # run training loop
+
+grad_cam = BatchGradCam(model=model, feature_module=model.layer3, \
+                target_layer_names=["0"], use_cuda=args.use_cuda)
+
 for epoch in range(args.epochs):
-    train_accuracy = train(model, criterion, optimizer, train_loader, max_num_batches)
+    train_accuracy = train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches)
     test_acc = test(model, test_loader, max_num_batches)
     is_best = test_acc > best_acc
     tqdm.write('test_acc: %.3f' % (test_acc))
