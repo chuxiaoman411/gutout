@@ -52,12 +52,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--seed', type=int, default=0,
                     help='random seed (default: 1)')
 
-##GutOut arguments
-parser.add_argument('--gutout', action='store_true', default=False,
-                    help='apply gutout')
-parser.add_argument('--threshold', type=float, default=0.9,
-                    help='threshold for gutout')   
-                     
+
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 cudnn.benchmark = True  # Should make training should go faster for large models
@@ -176,10 +171,12 @@ cnn_optimizer = torch.optim.SGD(cnn.parameters(), lr=args.learning_rate,
 if args.dataset == 'svhn':
     scheduler = MultiStepLR(cnn_optimizer, milestones=[80, 120], gamma=0.1)
 else:
-    scheduler = MultiStepLR(cnn_optimizer, milestones=[60, 120, 160], gamma=0.2)
+    scheduler = MultiStepLR(cnn_optimizer, milestones=[
+                            60, 120, 160], gamma=0.2)
 
 filename = test_id + '.csv'
-csv_logger = CSVLogger(args=args, fieldnames=['epoch', 'train_acc', 'test_acc'], filename=filename)
+csv_logger = CSVLogger(args=args, fieldnames=[
+                       'epoch', 'train_acc', 'test_acc'], filename=filename)
 
 
 def test(loader):
@@ -237,10 +234,11 @@ for epoch in range(args.epochs):
     test_acc = test(test_loader)
     tqdm.write('test_acc: %.3f' % (test_acc))
 
-    #scheduler.step(epoch)  # Use this line for PyTorch <1.4
+    # scheduler.step(epoch)  # Use this line for PyTorch <1.4
     scheduler.step()     # Use this line for PyTorch >=1.4
 
-    row = {'epoch': str(epoch), 'train_acc': str(accuracy), 'test_acc': str(test_acc)}
+    row = {'epoch': str(epoch), 'train_acc': str(
+        accuracy), 'test_acc': str(test_acc)}
     csv_logger.writerow(row)
 
 torch.save(cnn.state_dict(), 'checkpoints/' + test_id + '.pt')
