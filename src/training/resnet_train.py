@@ -20,6 +20,7 @@ from misc import CSVLogger
 from cutout import Cutout
 
 from resnet import ResNet18
+from basic_scripts.data_utils import get_dataloaders
 # from model.wide_resnet import WideResNet
 
 model_options = ['resnet18', 'wideresnet']
@@ -32,6 +33,8 @@ parser.add_argument('--model', '-a', default='resnet18',
                     choices=model_options)
 parser.add_argument('--batch_size', type=int, default=128,
                     help='input batch size for training (default: 128)')
+parser.add_argument('--num_workers', type=int, default=4,
+                    help='the number of workers for fetching data using the dataloaders (default: 4')
 parser.add_argument('--epochs', type=int, default=200,
                     help='number of epochs to train (default: 20)')
 parser.add_argument('--learning_rate', type=float, default=0.1,
@@ -49,12 +52,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--seed', type=int, default=0,
                     help='random seed (default: 1)')
 
-##GutOut arguments
-parser.add_argument('--gutout', action='store_true', default=False,
-                    help='apply gutout')
-parser.add_argument('--threshold', type=float, default=0.9,
-                    help='threshold for gutout')   
-                     
+
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 cudnn.benchmark = True  # Should make training should go faster for large models
@@ -67,85 +65,91 @@ test_id = args.dataset + '_' + args.model
 
 print(args)
 
-# Image Preprocessing
-if args.dataset == 'svhn':
-    normalize = transforms.Normalize(mean=[x / 255.0 for x in[109.9, 109.7, 113.8]],
-                                     std=[x / 255.0 for x in [50.1, 50.6, 50.8]])
-else:
-    normalize = transforms.Normalize(mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
-                                     std=[x / 255.0 for x in [63.0, 62.1, 66.7]])
+# # Image Preprocessing
+# if args.dataset == 'svhn':
+#     normalize = transforms.Normalize(mean=[x / 255.0 for x in[109.9, 109.7, 113.8]],
+#                                      std=[x / 255.0 for x in [50.1, 50.6, 50.8]])
+# else:
+#     normalize = transforms.Normalize(mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
+#                                      std=[x / 255.0 for x in [63.0, 62.1, 66.7]])
 
-train_transform = transforms.Compose([])
-if args.data_augmentation:
-    train_transform.transforms.append(transforms.RandomCrop(32, padding=4))
-    train_transform.transforms.append(transforms.RandomHorizontalFlip())
-train_transform.transforms.append(transforms.ToTensor())
-train_transform.transforms.append(normalize)
-if args.cutout:
-    train_transform.transforms.append(Cutout(n_holes=args.n_holes, length=args.length))
+# train_transform = transforms.Compose([])
+# if args.data_augmentation:
+#     train_transform.transforms.append(transforms.RandomCrop(32, padding=4))
+#     train_transform.transforms.append(transforms.RandomHorizontalFlip())
+# train_transform.transforms.append(transforms.ToTensor())
+# train_transform.transforms.append(normalize)
+# if args.cutout:
+#     train_transform.transforms.append(Cutout(n_holes=args.n_holes, length=args.length))
 
 
-test_transform = transforms.Compose([
-    transforms.ToTensor(),
-    normalize])
+# test_transform = transforms.Compose([
+#     transforms.ToTensor(),
+#     normalize])
 
-if args.dataset == 'cifar10':
-    num_classes = 10
-    train_dataset = datasets.CIFAR10(root='data/',
-                                     train=True,
-                                     transform=train_transform,
-                                     download=True)
+# if args.dataset == 'cifar10':
+#     num_classes = 10
+#     train_dataset = datasets.CIFAR10(root='data/',
+#                                      train=True,
+#                                      transform=train_transform,
+#                                      download=True)
 
-    test_dataset = datasets.CIFAR10(root='data/',
-                                    train=False,
-                                    transform=test_transform,
-                                    download=True)
-elif args.dataset == 'cifar100':
-    num_classes = 100
-    train_dataset = datasets.CIFAR100(root='data/',
-                                      train=True,
-                                      transform=train_transform,
-                                      download=True)
+#     test_dataset = datasets.CIFAR10(root='data/',
+#                                     train=False,
+#                                     transform=test_transform,
+#                                     download=True)
+# elif args.dataset == 'cifar100':
+#     num_classes = 100
+#     train_dataset = datasets.CIFAR100(root='data/',
+#                                       train=True,
+#                                       transform=train_transform,
+#                                       download=True)
 
-    test_dataset = datasets.CIFAR100(root='data/',
-                                     train=False,
-                                     transform=test_transform,
-                                     download=True)
-elif args.dataset == 'svhn':
-    num_classes = 10
-    train_dataset = datasets.SVHN(root='data/',
-                                  split='train',
-                                  transform=train_transform,
-                                  download=True)
+#     test_dataset = datasets.CIFAR100(root='data/',
+#                                      train=False,
+#                                      transform=test_transform,
+#                                      download=True)
+# elif args.dataset == 'svhn':
+#     num_classes = 10
+#     train_dataset = datasets.SVHN(root='data/',
+#                                   split='train',
+#                                   transform=train_transform,
+#                                   download=True)
 
-    extra_dataset = datasets.SVHN(root='data/',
-                                  split='extra',
-                                  transform=train_transform,
-                                  download=True)
+#     extra_dataset = datasets.SVHN(root='data/',
+#                                   split='extra',
+#                                   transform=train_transform,
+#                                   download=True)
 
-    # Combine both training splits (https://arxiv.org/pdf/1605.07146.pdf)
-    data = np.concatenate([train_dataset.data, extra_dataset.data], axis=0)
-    labels = np.concatenate([train_dataset.labels, extra_dataset.labels], axis=0)
-    train_dataset.data = data
-    train_dataset.labels = labels
+#     # Combine both training splits (https://arxiv.org/pdf/1605.07146.pdf)
+#     data = np.concatenate([train_dataset.data, extra_dataset.data], axis=0)
+#     labels = np.concatenate([train_dataset.labels, extra_dataset.labels], axis=0)
+#     train_dataset.data = data
+#     train_dataset.labels = labels
 
-    test_dataset = datasets.SVHN(root='data/',
-                                 split='test',
-                                 transform=test_transform,
-                                 download=True)
+#     test_dataset = datasets.SVHN(root='data/',
+#                                  split='test',
+#                                  transform=test_transform,
+#                                  download=True)
+
+# get datasets
 
 # Data Loader (Input Pipeline)
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                           batch_size=args.batch_size,
-                                           shuffle=True,
-                                           pin_memory=True,
-                                           num_workers=2)
+# train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+#                                            batch_size=args.batch_size,
+#                                            shuffle=True,
+#                                            pin_memory=True,
+#                                            num_workers=2)
 
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                          batch_size=args.batch_size,
-                                          shuffle=False,
-                                          pin_memory=True,
-                                          num_workers=2)
+# test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+#                                           batch_size=args.batch_size,
+#                                           shuffle=False,
+#                                           pin_memory=True,
+#                                           num_workers=2)
+
+
+train_loader, test_loader = get_dataloaders(args)
+
 
 if args.model == 'resnet18':
     cnn = ResNet18(num_classes=num_classes)
@@ -167,10 +171,12 @@ cnn_optimizer = torch.optim.SGD(cnn.parameters(), lr=args.learning_rate,
 if args.dataset == 'svhn':
     scheduler = MultiStepLR(cnn_optimizer, milestones=[80, 120], gamma=0.1)
 else:
-    scheduler = MultiStepLR(cnn_optimizer, milestones=[60, 120, 160], gamma=0.2)
+    scheduler = MultiStepLR(cnn_optimizer, milestones=[
+                            60, 120, 160], gamma=0.2)
 
 filename = test_id + '.csv'
-csv_logger = CSVLogger(args=args, fieldnames=['epoch', 'train_acc', 'test_acc'], filename=filename)
+csv_logger = CSVLogger(args=args, fieldnames=[
+                       'epoch', 'train_acc', 'test_acc'], filename=filename)
 
 
 def test(loader):
@@ -228,10 +234,11 @@ for epoch in range(args.epochs):
     test_acc = test(test_loader)
     tqdm.write('test_acc: %.3f' % (test_acc))
 
-    #scheduler.step(epoch)  # Use this line for PyTorch <1.4
+    # scheduler.step(epoch)  # Use this line for PyTorch <1.4
     scheduler.step()     # Use this line for PyTorch >=1.4
 
-    row = {'epoch': str(epoch), 'train_acc': str(accuracy), 'test_acc': str(test_acc)}
+    row = {'epoch': str(epoch), 'train_acc': str(
+        accuracy), 'test_acc': str(test_acc)}
     csv_logger.writerow(row)
 
 torch.save(cnn.state_dict(), 'checkpoints/' + test_id + '.pt')
