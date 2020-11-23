@@ -6,6 +6,10 @@ import pdb
 import argparse
 import numpy as np
 from tqdm import tqdm
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__)))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 
 import torch
 import torch.nn as nn
@@ -16,11 +20,10 @@ from torch.optim.lr_scheduler import MultiStepLR
 from torchvision.utils import make_grid
 from torchvision import datasets, transforms
 
-from misc import CSVLogger
-from cutout import Cutout
-
-from resnet import ResNet18
-from basic_scripts.data_utils import get_dataloaders
+from src.utils.cutout import Cutout
+from src.utils.misc import CSVLogger
+from src.utils.data_utils import get_dataloaders
+from src.models.resnet import resnet18
 # from model.wide_resnet import WideResNet
 
 model_options = ['resnet18', 'wideresnet']
@@ -47,14 +50,14 @@ parser.add_argument('--n_holes', type=int, default=1,
                     help='number of holes to cut out from image')
 parser.add_argument('--length', type=int, default=16,
                     help='length of the holes')
-parser.add_argument('--no-cuda', action='store_true', default=False,
+parser.add_argument('--use_cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=0,
                     help='random seed (default: 1)')
 
 
 args = parser.parse_args()
-args.cuda = not args.no_cuda and torch.cuda.is_available()
+args.cuda = args.use_cuda
 cudnn.benchmark = True  # Should make training should go faster for large models
 
 torch.manual_seed(args.seed)
@@ -65,94 +68,15 @@ test_id = args.dataset + '_' + args.model
 
 print(args)
 
-# # Image Preprocessing
-# if args.dataset == 'svhn':
-#     normalize = transforms.Normalize(mean=[x / 255.0 for x in[109.9, 109.7, 113.8]],
-#                                      std=[x / 255.0 for x in [50.1, 50.6, 50.8]])
-# else:
-#     normalize = transforms.Normalize(mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
-#                                      std=[x / 255.0 for x in [63.0, 62.1, 66.7]])
-
-# train_transform = transforms.Compose([])
-# if args.data_augmentation:
-#     train_transform.transforms.append(transforms.RandomCrop(32, padding=4))
-#     train_transform.transforms.append(transforms.RandomHorizontalFlip())
-# train_transform.transforms.append(transforms.ToTensor())
-# train_transform.transforms.append(normalize)
-# if args.cutout:
-#     train_transform.transforms.append(Cutout(n_holes=args.n_holes, length=args.length))
-
-
-# test_transform = transforms.Compose([
-#     transforms.ToTensor(),
-#     normalize])
-
-# if args.dataset == 'cifar10':
-#     num_classes = 10
-#     train_dataset = datasets.CIFAR10(root='data/',
-#                                      train=True,
-#                                      transform=train_transform,
-#                                      download=True)
-
-#     test_dataset = datasets.CIFAR10(root='data/',
-#                                     train=False,
-#                                     transform=test_transform,
-#                                     download=True)
-# elif args.dataset == 'cifar100':
-#     num_classes = 100
-#     train_dataset = datasets.CIFAR100(root='data/',
-#                                       train=True,
-#                                       transform=train_transform,
-#                                       download=True)
-
-#     test_dataset = datasets.CIFAR100(root='data/',
-#                                      train=False,
-#                                      transform=test_transform,
-#                                      download=True)
-# elif args.dataset == 'svhn':
-#     num_classes = 10
-#     train_dataset = datasets.SVHN(root='data/',
-#                                   split='train',
-#                                   transform=train_transform,
-#                                   download=True)
-
-#     extra_dataset = datasets.SVHN(root='data/',
-#                                   split='extra',
-#                                   transform=train_transform,
-#                                   download=True)
-
-#     # Combine both training splits (https://arxiv.org/pdf/1605.07146.pdf)
-#     data = np.concatenate([train_dataset.data, extra_dataset.data], axis=0)
-#     labels = np.concatenate([train_dataset.labels, extra_dataset.labels], axis=0)
-#     train_dataset.data = data
-#     train_dataset.labels = labels
-
-#     test_dataset = datasets.SVHN(root='data/',
-#                                  split='test',
-#                                  transform=test_transform,
-#                                  download=True)
-
-# get datasets
-
-# Data Loader (Input Pipeline)
-# train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-#                                            batch_size=args.batch_size,
-#                                            shuffle=True,
-#                                            pin_memory=True,
-#                                            num_workers=2)
-
-# test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-#                                           batch_size=args.batch_size,
-#                                           shuffle=False,
-#                                           pin_memory=True,
-#                                           num_workers=2)
-
-
 train_loader, test_loader = get_dataloaders(args)
 
+if args.dataset == 'cifar10':
+    num_classes = 10
+else:
+    num_classes = 100
 
 if args.model == 'resnet18':
-    cnn = ResNet18(num_classes=num_classes)
+    cnn = resnet18(num_classes=num_classes)
 elif args.model == 'wideresnet':
     if args.dataset == 'svhn':
         cnn = WideResNet(depth=16, num_classes=num_classes, widen_factor=8,
@@ -161,10 +85,11 @@ elif args.model == 'wideresnet':
         cnn = WideResNet(depth=28, num_classes=num_classes, widen_factor=10,
                          dropRate=0.3)
 
-# cnn = cnn.cuda()
-# criterion = nn.CrossEntropyLoss().cuda()
-cnn = cnn
-criterion = nn.CrossEntropyLoss()
+if args.cuda:
+    cnn = cnn.cuda()
+    criterion = nn.CrossEntropyLoss().cuda()
+# cnn = cnn
+# criterion = nn.CrossEntropyLoss()
 cnn_optimizer = torch.optim.SGD(cnn.parameters(), lr=args.learning_rate,
                                 momentum=0.9, nesterov=True, weight_decay=5e-4)
 
@@ -184,8 +109,9 @@ def test(loader):
     correct = 0.
     total = 0.
     for images, labels in loader:
-        # images = images.cuda()
-        # labels = labels.cuda()
+        if args.cuda:
+            images = images.cuda()
+            labels = labels.cuda()
 
         with torch.no_grad():
             pred = cnn(images)
@@ -208,9 +134,9 @@ for epoch in range(args.epochs):
     progress_bar = tqdm(train_loader)
     for i, (images, labels) in enumerate(progress_bar):
         progress_bar.set_description('Epoch ' + str(epoch))
-
-        # images = images.cuda()
-        # labels = labels.cuda()
+        if args.cuda:
+            images = images.cuda()
+            labels = labels.cuda()
 
         cnn.zero_grad()
         pred = cnn(images)
