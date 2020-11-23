@@ -88,7 +88,7 @@ def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=N
 
         # conduct gutout
         if args.gutout:
-            images = gutout_images(grad_cam, images, threshold=args.threshold)
+            images,avg_num_masked_pixels = gutout_images(grad_cam, images, threshold=args.threshold)
 
         optimizer.zero_grad()
         pred = model(images)
@@ -190,7 +190,7 @@ experiment_id = args.dataset + '_' + args.model
 current_time = time.localtime()
 current_time = time.strftime(
     "%H-%M-%S", current_time)
-experiment_dir = current_time + " experiment_" + experiment_id 
+experiment_dir = current_time + "-experiment_" + experiment_id 
             
 os.makedirs(experiment_dir)
 os.makedirs(os.path.join(experiment_dir,"checkpoints/"), exist_ok=True)
@@ -199,8 +199,8 @@ csv_logger = CSVLogger(args=args, fieldnames=[
                        'epoch', 'train_acc', 'test_acc'], filename=csv_filename)
 
 best_acc = -1
-grad_cam = BatchGradCam(model=model, feature_module=model.layer4,
-                        target_layer_names=["1"], use_cuda=args.use_cuda)
+grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
+                        target_layer_names=["0"], use_cuda=args.use_cuda)
 
 # run training loop
 for epoch in range(args.epochs):
@@ -217,8 +217,10 @@ for epoch in range(args.epochs):
         train_accuracy), 'test_acc': str(test_acc)}
     csv_logger.writerow(row)
     if is_best:
-        torch.save(model.state_dict(), os.path.join(experiment_dir,'checkpoints/' + experiment_id + '.pth'))
-    
+        torch.save(model.state_dict(), os.path.join(experiment_dir,'checkpoints/' + experiment_id + '_best.pth'))
+    if epoch % 5 == 0 and epoch != 0:
+        torch.save(model.state_dict(), os.path.join(
+            experiment_dir, 'checkpoints/' + experiment_id +"_Epoch_"+ str(epoch)+"_acc"+str(test_acc)+ '_.pth'))
     get_gutout_samples(model,epoch,experiment_dir,args)
 
 csv_logger.close()
