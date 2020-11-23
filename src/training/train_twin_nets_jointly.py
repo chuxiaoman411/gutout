@@ -101,7 +101,7 @@ def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=N
 
         # conduct gutout
         if args.gutout:
-            images = gutout_images(grad_cam, images, threshold=args.threshold)
+            images, _ = gutout_images(grad_cam, images, args=args)
 
         optimizer.zero_grad()
         pred = model(images)
@@ -225,18 +225,18 @@ for epoch in range(args.epochs*2):
             gutout_model = model_b
             optimizer = optimizer_a
             training_flag = 'a'
-    
+
     grad_cam = BatchGradCam(model=gutout_model, feature_module=gutout_model.layer4,
                             target_layer_names=["1"], use_cuda=args.use_cuda)
     train_accuracy = train(training_model, grad_cam, criterion,
                            optimizer, train_loader, max_num_batches)
     test_acc = test(training_model, test_loader, max_num_batches)
-    
+
     tqdm.write(training_flag+' test_acc: %.3f' % (test_acc))
     row = {'epoch': str(epoch), 'train_acc': str(train_accuracy), 'test_acc': str(test_acc)}
-    
+
     if training_flag == 'a':
-        scheduler_a.step()     
+        scheduler_a.step()
         csv_logger_a.writerow(row)
         is_best = test_acc > best_acc_a
         if is_best:

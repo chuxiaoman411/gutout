@@ -10,7 +10,7 @@ import os
 from torchvision import transforms
 
 class FeatureExtractor():
-    """ Class for extracting activations and 
+    """ Class for extracting activations and
     registering gradients from targetted intermediate layers """
 
     def __init__(self, model, target_layers):
@@ -297,9 +297,9 @@ def apply_batch_gutout_mask(images, masks, args):
     return images * masks
 
 
-def gutout_images(grad_cam, images, threshold, args):
+def gutout_images(grad_cam, images, args):
     masks = grad_cam(images)
-    gutout_masks = generate_batch_gutout_mask(threshold, masks)
+    gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
     avg_num_masked_pixel = np.sum(gutout_masks.numpy() == 0)/gutout_masks.shape[0]
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
 
@@ -325,11 +325,11 @@ def get_gutout_samples(model, epoch, experiment_dir, args):
             img = np.float32(cv2.resize(img, (32, 32)))
             img = np.expand_dims(img, 0)
             images.append(img)
-            
+
     images = np.concatenate(images,0)
     images = torch.from_numpy(images).permute(0, 3, 1, 2)
     #images = normalize(images)
-    
+
     if args.use_cuda:
         img_after_gutout, avg_num_masked_pixel = gutout_images(
             grad_cam, images, args.threshold, args)
@@ -367,4 +367,3 @@ def show_images(images):
     axes[1].set_title("Grad-cam on image")
     axes[2].set_title("GutOut on image")
     plt.show(block=True)
-

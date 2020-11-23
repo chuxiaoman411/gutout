@@ -68,7 +68,7 @@ parser.add_argument('--mu',type=float, default=0.9,
                     help='mu for Gaussian Distribution')
 parser.add_argument('--sigma', type=float, default=0.1,
                     help='sigma for Gaussian Distribution')
-    
+
 
 
 def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=None):
@@ -88,7 +88,7 @@ def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=N
 
         # conduct gutout
         if args.gutout:
-            images,avg_num_masked_pixels = gutout_images(grad_cam, images, threshold=args.threshold)
+            images, _ = gutout_images(grad_cam, images, args=args)
 
         optimizer.zero_grad()
         pred = model(images)
@@ -190,8 +190,8 @@ experiment_id = args.dataset + '_' + args.model
 current_time = time.localtime()
 current_time = time.strftime(
     "%H-%M-%S", current_time)
-experiment_dir = current_time + "-experiment_" + experiment_id 
-            
+experiment_dir = current_time + "-experiment_" + experiment_id
+
 os.makedirs(experiment_dir)
 os.makedirs(os.path.join(experiment_dir,"checkpoints/"), exist_ok=True)
 csv_filename = os.path.join(experiment_dir, experiment_id + '.csv')
