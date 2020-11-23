@@ -182,7 +182,7 @@ if args.model == 'resnet18':
 optimizer_a = torch.optim.SGD(model_a.parameters(), lr=args.learning_rate,
                             momentum=0.9, nesterov=True, weight_decay=5e-4)
 scheduler_a = MultiStepLR(optimizer_a, milestones=[60, 120, 160], gamma=0.2)
-optimizer_b = torch.optim.SGD(model_a.parameters(), lr=args.learning_rate,
+optimizer_b = torch.optim.SGD(model_b.parameters(), lr=args.learning_rate,
                               momentum=0.9, nesterov=True, weight_decay=5e-4)
 scheduler_b = MultiStepLR(optimizer_b, milestones=[60, 120, 160], gamma=0.2)
 

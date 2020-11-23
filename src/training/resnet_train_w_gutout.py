@@ -55,7 +55,7 @@ parser.add_argument('--seed', type=int, default=0,
                     help='random seed (default: 1)')
 
 # GutOut arguments
-parser.add_argument('--gutout', action='store_true', default=False,
+parser.add_argument('--gutout', action='store_true', default=True,
                     help='apply gutout')
 parser.add_argument('--model_path', default=r'checkpoints/model.pt',
                     help='path to the Resnet model used to generate gutout mask')
@@ -88,7 +88,7 @@ def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=N
 
         # conduct gutout
         if args.gutout:
-            images,avg_num_masked_pixels = gutout_images(grad_cam, images, threshold=args.threshold)
+            images, avg_num_masked_pixels = gutout_images(grad_cam, images, threshold=args.threshold, args=args)
 
         optimizer.zero_grad()
         pred = model(images)
@@ -142,9 +142,9 @@ def test(model, test_loader, max_num_batches=None):
 args = parser.parse_args()
 max_num_batches = None
 if args.smoke_test == 1:
-    args.batch_size = 2
+    args.batch_size = 32
     args.epochs = 3
-    max_num_batches = 2
+    max_num_batches = 16
 print(args)
 
 args.cuda = args.use_cuda
@@ -169,15 +169,15 @@ elif args.dataset == 'cifar100':
 # create model
 if args.model == 'resnet18':
     model = resnet18(num_classes=num_classes)
-if args.gutout:
-    model_for_gutout = resnet18(num_classes=num_classes)
-    model_for_gutout.load_state_dict(torch.load(args.model_path))
+# if args.gutout:
+#     model_for_gutout = resnet18(num_classes=num_classes)
+#     model_for_gutout.load_state_dict(torch.load(args.model_path))
 
 
 # create optimizer, loss function and schedualer
 optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate,
-                            momentum=0.9, nesterov=True, weight_decay=5e-4)
-scheduler = MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
+                            momentum=0.9, nesterov=False, weight_decay=5e-4)
+scheduler = MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.1)
 criterion = nn.CrossEntropyLoss()
 
 # cast to gpu if needed
@@ -199,7 +199,7 @@ csv_logger = CSVLogger(args=args, fieldnames=[
                        'epoch', 'train_acc', 'test_acc'], filename=csv_filename)
 
 best_acc = -1
-grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
+grad_cam = BatchGradCam(model=model, feature_module=model.layer1,
                         target_layer_names=["0"], use_cuda=args.use_cuda)
 
 # run training loop
@@ -221,6 +221,6 @@ for epoch in range(args.epochs):
     if epoch % 5 == 0 and epoch != 0:
         torch.save(model.state_dict(), os.path.join(
             experiment_dir, 'checkpoints/' + experiment_id +"_Epoch_"+ str(epoch)+"_acc"+str(test_acc)+ '_.pth'))
-    get_gutout_samples(model,epoch,experiment_dir,args)
+    get_gutout_samples(model, grad_cam, epoch, experiment_dir, args)
 
 csv_logger.close()

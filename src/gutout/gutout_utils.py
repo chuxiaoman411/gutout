@@ -305,14 +305,14 @@ def gutout_images(grad_cam, images, threshold, args):
 
     return img_after_gutout, avg_num_masked_pixel
 
-def get_gutout_samples(model, epoch, experiment_dir, args):
+def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     if args.dataset == 'cifar10':
         path = "sample_imgs_cifar10"
     elif args.dataset == 'cifar10':
         path = "sample_imgs_cifar100"
 
-    grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
-                            target_layer_names=["0"], use_cuda=args.use_cuda)
+    # grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
+    #                         target_layer_names=["0"], use_cuda=args.use_cuda)
 
     normalize = transforms.Normalize(mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
                                      std=[x / 255.0 for x in [63.0, 62.1, 66.7]])
