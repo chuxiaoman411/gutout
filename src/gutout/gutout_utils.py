@@ -331,12 +331,10 @@ def get_gutout_samples(model, epoch, experiment_dir, args):
     #images = normalize(images)
 
     if args.use_cuda:
-        img_after_gutout, avg_num_masked_pixel = gutout_images(
-            grad_cam, images, args.threshold, args)
+        img_after_gutout, avg_num_masked_pixel = gutout_images(grad_cam, images, args)
         img_after_gutout = img_after_gutout.cpu().numpy()
     else:
-        img_after_gutout, avg_num_masked_pixel = gutout_images(
-            grad_cam, images, args.threshold, args)
+        img_after_gutout, avg_num_masked_pixel = gutout_images(grad_cam, images, args)
         img_after_gutout = img_after_gutout.numpy()
     print("Average number of pixels per image get gutout during sampling:",avg_num_masked_pixel)
     for i in range(len(names)):
