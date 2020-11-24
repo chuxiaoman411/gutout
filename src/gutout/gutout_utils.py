@@ -307,9 +307,9 @@ def gutout_images(grad_cam, images, args):
 
 def get_gutout_samples(model, epoch, experiment_dir, args):
     if args.dataset == 'cifar10':
-        path = "sample_imgs_cifar10"
+        path = "sample_imgs_cifar10" ## copied these from root folder to training folder
     elif args.dataset == 'cifar10':
-        path = "sample_imgs_cifar100"
+        path = "sample_imgs_cifar100" ## copied these from root folder to training folder
 
     grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
                             target_layer_names=["0"], use_cuda=args.use_cuda)
@@ -332,11 +332,11 @@ def get_gutout_samples(model, epoch, experiment_dir, args):
 
     if args.use_cuda:
         img_after_gutout, avg_num_masked_pixel = gutout_images(
-            grad_cam, images, args.threshold, args)
+            grad_cam, images, args) #deleted args.threshold as one of four arguments
         img_after_gutout = img_after_gutout.cpu().numpy()
     else:
         img_after_gutout, avg_num_masked_pixel = gutout_images(
-            grad_cam, images, args.threshold, args)
+            grad_cam, images, args) #deleted args.threshold as one of four arguments
         img_after_gutout = img_after_gutout.numpy()
     print("Average number of pixels per image get gutout during sampling:",avg_num_masked_pixel)
     for i in range(len(names)):

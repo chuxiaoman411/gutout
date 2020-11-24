@@ -178,6 +178,9 @@ if args.model == 'resnet18':
     model_a = resnet18(num_classes=num_classes)
     model_b = resnet18(num_classes=num_classes)
 
+    ### newly added by esther:
+    model_b.load_state_dict(torch.load('cifar10_resnet18_acc0.7985_.pth',map_location='cpu'))
+
 # create optimizer, loss function and schedualer
 optimizer_a = torch.optim.SGD(model_a.parameters(), lr=args.learning_rate,
                             momentum=0.9, nesterov=True, weight_decay=5e-4)
