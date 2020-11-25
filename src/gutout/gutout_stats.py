@@ -66,7 +66,7 @@ args = parser.parse_args()
 model_b = resnet18(num_classes=10) #generalize num_classes later
 model_b.load_state_dict(torch.load('./../training/cifar10_resnet18_acc0.7985_.pth',map_location='cpu'))
 
-grad_cam = GradCam(model=model_b, feature_module=model_b.layer3,
+grad_cam = GradCam(model=model_b, feature_module=model_b.layer1,
                         target_layer_names=["0"], use_cuda=False) #last argument was: use_cuda=args.use_cuda
 
 train_loader, test_loader = get_dataloaders(args)
@@ -83,7 +83,7 @@ def show_images(images):
 
     axes[0].set_title("Original image")
     axes[1].set_title("Grad-cam on image")
-    #axes[2].set_title("GutOut on image")
+    axes[2].set_title("GutOut on image")
     plt.show(block=True)
 
 for i, (images, labels) in enumerate(progress_bar): #shape of images: [128, 3, 32, 32]
@@ -95,13 +95,20 @@ for i, (images, labels) in enumerate(progress_bar): #shape of images: [128, 3, 3
     #first_img = np.transpose(first_img, [1,2,0])
     print("min", torch.min(first_img))
     print("max", torch.max(first_img))
-    #first_img = np.float32(cv2.resize(first_img, (224, 224))) / 255
+    #first_img_as_batch = torch.unsqueeze(first_img, 0)
+    first_img_as_batch = first_img.unsqueeze(0)
+    #first_img = np.float32(cv2.resize(first_img, (224, 224))) #/ 255
     print("first_img", first_img)
-    #mask = grad_cam(first_img)
+    mask = grad_cam(first_img_as_batch)
+    first_img = np.transpose(first_img, (1,2,0))
     #first_mask = mask[0,:,:,:]
     #print("shape of mask", mask.size())
-    #cam_on_image = show_cam_on_image(first_img, mask)
-    #show_images([first_img, cam_on_image])
+    cam_on_image = show_cam_on_image(first_img, mask)
+    gutout_imgs, _ = gutout_images(grad_cam, first_img_as_batch, args)
+    gutout_img = gutout_imgs.squeeze(0)
+    gutout_img = np.transpose(gutout_img, (1,2,0))
+    print("shape of first img", first_img.size())
+    print("shape of cam on image", cam_on_image.shape)
+    print("shape of gut out image", gutout_img.shape)
+    show_images([first_img, cam_on_image, gutout_img])
     input("pause")
-
-#gutout_images(grad_cam, train_loader[0], args)
