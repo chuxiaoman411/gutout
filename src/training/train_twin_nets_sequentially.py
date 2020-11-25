@@ -61,8 +61,7 @@ parser.add_argument('--seed', type=int, default=0,
 # GutOut arguments
 parser.add_argument('--gutout', action='store_true', default=False,
                     help='apply gutout')
-parser.add_argument('--model_path', default='checkpoints/model.pt',
-                    help='path to the Resnet model used to generate gutout mask')
+parser.add_argument('--model_path', help='path to the Resnet model used to generate gutout mask')
 
 parser.add_argument('--threshold', type=float, default=0.9,
                     help='threshold for gutout')
@@ -178,7 +177,9 @@ elif args.dataset == 'cifar100':
 # create models
 if args.model == 'resnet18':
     training_model = resnet18(num_classes=num_classes)
-    gutout_model = resnet18(pretrained=True, num_classes=num_classes)
+    if args.gutout:
+        gutout_model = resnet18(num_classes=num_classes)
+        gutout_model.load_state_dict(torch.load(args.model_path))
 
 # create optimizer, loss function and schedualer
 optimizer = torch.optim.SGD(training_model.parameters(), lr=args.learning_rate,
@@ -206,8 +207,10 @@ best_acc = -1
 
 for epoch in range(args.epochs):
 
-    grad_cam = BatchGradCam(model=gutout_model, feature_module=gutout_model.layer4,
-                            target_layer_names=["1"], use_cuda=args.use_cuda)
+    grad_cam = None
+    if args.gutout:
+        grad_cam = BatchGradCam(model=gutout_model, feature_module=gutout_model.layer4,
+                                target_layer_names=["1"], use_cuda=args.use_cuda)
     train_accuracy = train(training_model, grad_cam, criterion,
                            optimizer, train_loader, max_num_batches)
     test_acc = test(training_model, test_loader, max_num_batches)
@@ -217,9 +220,14 @@ for epoch in range(args.epochs):
 
     scheduler.step()
     csv_logger.writerow(row)
-    is_best = test_acc > best_acc
-    if is_best:
+    if args.gutout and is_best:
+        is_best = test_acc > best_acc
         torch.save(training_model.state_dict(), os.path.join(
             experiment_dir, 'checkpoints/' + experiment_id + '_gutout.pth'))
 
-    get_gutout_samples(training_model, epoch, experiment_dir, args)
+    if args.gutout:
+        get_gutout_samples(training_model, epoch, experiment_dir, args)
+
+if not args.gutout:
+    torch.save(training_model.state_dict(), args.model_path)
+    csv_logger.close()
