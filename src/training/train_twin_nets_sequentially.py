@@ -61,7 +61,8 @@ parser.add_argument('--seed', type=int, default=0,
 # GutOut arguments
 parser.add_argument('--gutout', action='store_true', default=False,
                     help='apply gutout')
-parser.add_argument('--model_path', help='path to the Resnet model used to generate gutout mask')
+parser.add_argument('--model_path', required=True,
+                    help='path to the Resnet model used to generate gutout mask')
 
 parser.add_argument('--threshold', type=float, default=0.9,
                     help='threshold for gutout')
@@ -215,7 +216,7 @@ for epoch in range(args.epochs):
                            optimizer, train_loader, max_num_batches)
     test_acc = test(training_model, test_loader, max_num_batches)
 
-    tqdm.write(training_flag+' test_acc: %.3f' % (test_acc))
+    tqdm.write('test_acc: %.3f' % (test_acc))
     row = {'epoch': str(epoch), 'train_acc': str(train_accuracy), 'test_acc': str(test_acc)}
 
     scheduler.step()
