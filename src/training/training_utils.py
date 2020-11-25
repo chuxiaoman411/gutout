@@ -113,6 +113,13 @@ def get_optimizer_and_schedular(model, args):
     scheduler = MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
     return optimizer, scheduler
 
+def get_model(args):
+    if args.dataset == 'cifar10':
+        num_classes = 10
+    elif args.dataset == 'cifar100':
+        num_classes = 100
+    model = resnet18(num_classes=num_classes)
+    return model
 
 def create_experiment_dir(args):
     experiment_id = args.dataset + '_' + args.model
@@ -129,7 +136,7 @@ def create_experiment_dir(args):
 def get_csv_logger(experiment_dir, experiment_id, model_flag="a"):
     csv_filename = os.path.join(experiment_dir, experiment_id + f'_{model_flag}.csv')
     csv_logger = CSVLogger(args=args, fieldnames=['epoch', 'train_acc', 'test_acc', "train_loss", "train_num_masked_pixel", "train_mean_gradcam_values", "train_std_gradcam_values"], filename=csv_filename)
-
+    return csv_logger
 
 def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=None):
     model.train()
@@ -179,8 +186,8 @@ def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=N
             xentropy='%.3f' % (mean_loss),
             acc='%.3f' % (accuracy).
             mean_num_masked_pixel='%.3f' % (mean_num_masked_pixel),
-            mean_gradcam_values='%.3f' % (mean_gradcam_values)
-            mean_std_gradcam_values='%.3f' % (mean_std_gradcam_values),
+            mean_gradcam_values='%.3f' % (mean_gradcam_values),
+            mean_std_gradcam_values='%.3f' % (mean_std_gradcam_values)
             )
 
         if max_num_batches is not None and i >= max_num_batches:
