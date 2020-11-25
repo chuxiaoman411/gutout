@@ -136,9 +136,9 @@ def get_model(args, weights_path=''):
 def create_experiment_dir(args):
     experiment_id = args.dataset + '_' + args.model
     now = datetime.now()
-    dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+    dt_string = now.strftime("%d-%m-%Y__%H-%M-%S")
 
-    experiment_dir = dt_string + " experiment_" + experiment_id
+    experiment_dir = dt_string + "_experiment_" + experiment_id
 
     os.makedirs(experiment_dir)
     os.makedirs(os.path.join(experiment_dir, "checkpoints/"), exist_ok=True)
