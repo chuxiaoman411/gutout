@@ -167,7 +167,7 @@ if args.dataset == 'cifar10':
     num_classes = 10
 elif args.dataset == 'cifar100':
     num_classes = 100
-model = resnet18(num_classes=num_classes)
+# model = resnet18(num_classes=num_classes)
 # create model
 if args.model == 'resnet18':
     model = resnet18(num_classes=num_classes)

@@ -25,9 +25,6 @@ from src.utils.data_utils import get_dataloaders
 from src.training.training_utils import get_args, get_optimizer_and_schedular, get_csv_logger, get_model, create_experiment_dir, run_epoch
 
 
-
-
-
 if __name__ == "__main__":
 
     # parse arguments
@@ -42,7 +39,7 @@ if __name__ == "__main__":
 
     # create experiment dir, csv logg and criterion
     experiment_dir, experiment_id = create_experiment_dir(args)
-    csv_logger = get_csv_logger(experiment_dir, experiment_id, model_flag="a")
+    csv_logger = get_csv_logger(experiment_dir, experiment_id, args, model_flag="a")
     criterion = nn.CrossEntropyLoss()
 
     # cast to gpu if needed

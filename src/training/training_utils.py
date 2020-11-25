@@ -133,14 +133,17 @@ def create_experiment_dir(args):
     return experiment_dir, experiment_id
 
 
-def get_csv_logger(experiment_dir, experiment_id, model_flag="a"):
+def get_csv_logger(experiment_dir, experiment_id, args, model_flag="a"):
     csv_filename = os.path.join(experiment_dir, experiment_id + f'_{model_flag}.csv')
     csv_logger = CSVLogger(args=args, fieldnames=['epoch', 'train_acc', 'test_acc', "train_loss", "train_num_masked_pixel", "train_mean_gradcam_values", "train_std_gradcam_values"], filename=csv_filename)
     return csv_logger
 
-def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=None):
+def train(model, grad_cam, criterion, optimizer, train_loader, epoch, args, max_num_batches=None):
     model.train()
-    xentropy_loss_avg = 0.
+    xentropy_loss_sum = 0.
+    avg_num_masked_pixel_sum = 0.
+    avg_gradcam_values_sum = 0.
+    std_gradcam_values_sum = 0.
     correct = 0.
     total = 0
 
@@ -165,7 +168,6 @@ def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=N
         optimizer.step()
 
         xentropy_loss_sum += xentropy_loss.item()
-
         avg_num_masked_pixel_sum += avg_num_masked_pixel
         avg_gradcam_values_sum += avg_gradcam_values
         std_gradcam_values_sum += std_gradcam_values
@@ -184,7 +186,7 @@ def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=N
 
         progress_bar.set_postfix(
             xentropy='%.3f' % (mean_loss),
-            acc='%.3f' % (accuracy).
+            acc='%.3f' % (accuracy),
             mean_num_masked_pixel='%.3f' % (mean_num_masked_pixel),
             mean_gradcam_values='%.3f' % (mean_gradcam_values),
             mean_std_gradcam_values='%.3f' % (mean_std_gradcam_values)
@@ -196,7 +198,7 @@ def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=N
     return accuracy, mean_loss, mean_num_masked_pixel, mean_gradcam_values, mean_std_gradcam_values
 
 
-def test(model, test_loader, max_num_batches=None):
+def test(model, test_loader, args, max_num_batches=None):
     model.eval()    # Change model to 'eval' mode (BN uses moving mean/var).
     correct = 0.
     total = 0.
@@ -226,13 +228,13 @@ def run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_log
 
     # run train epoch
     train_accuracy, mean_loss, mean_num_masked_pixel, mean_gradcam_values, mean_std_gradcam_values = train(training_model, grad_cam, criterion,
-                           optimizer, train_loader, max_num_batches)
+                           optimizer, train_loader, epoch, args, max_num_batches)
     
     # run test epoch
-    test_acc = test(training_model, test_loader, max_num_batches)
+    test_acc = test(training_model, test_loader, args, max_num_batches)
 
     # write row
-    tqdm.write(training_flag+' test_acc: %.3f' % (test_acc))
+    tqdm.write(model_flag+' test_acc: %.3f' % (test_acc))
     # row = {'epoch': str(epoch), 'train_acc': str(train_accuracy), 'test_acc': str(test_acc)}
     row = {
         'epoch': str(epoch), 

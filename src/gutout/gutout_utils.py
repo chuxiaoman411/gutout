@@ -333,12 +333,13 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     images = torch.from_numpy(images).permute(0, 3, 1, 2)
     #images = normalize(images)
 
-    if args.use_cuda:
-        img_after_gutout, avg_num_masked_pixel = gutout_images(grad_cam, images, args)
-        img_after_gutout = img_after_gutout.cpu().numpy()
-    else:
-        img_after_gutout, avg_num_masked_pixel = gutout_images(grad_cam, images, args)
-        img_after_gutout = img_after_gutout.numpy()
+    # if args.use_cuda:
+    #     img_after_gutout, avg_num_masked_pixel = gutout_images(grad_cam, images, args)
+    #     img_after_gutout = img_after_gutout.cpu().numpy()
+    # else:
+    img_after_gutout, avg_num_masked_pixel, avg_gradcam_values, std_gradcam_values =  gutout_images(grad_cam, images, args)
+    img_after_gutout = img_after_gutout.cpu().numpy()
+
     print("Average number of pixels per image get gutout during sampling:",avg_num_masked_pixel)
     for i in range(len(names)):
         fn = "Epoch-"+str(epoch)+"-"+names[i]
