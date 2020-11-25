@@ -213,15 +213,24 @@ def test(model, test_loader, max_num_batches=None):
 def run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_logger, train_loader, test_loader, epoch, best_acc, max_num_batches, experiment_dir, experiment_id, args, training_flag="a"):
 
     # run train epoch
-    train_accuracy = train(training_model, grad_cam, criterion,
+    train_accuracy, mean_loss, mean_num_masked_pixel, mean_gradcam_values, mean_std_gradcam_values = train(training_model, grad_cam, criterion,
                            optimizer, train_loader, max_num_batches)
-
+    
     # run test epoch
     test_acc = test(training_model, test_loader, max_num_batches)
 
     # write row
     tqdm.write(training_flag+' test_acc: %.3f' % (test_acc))
-    row = {'epoch': str(epoch), 'train_acc': str(train_accuracy), 'test_acc': str(test_acc)}
+    # row = {'epoch': str(epoch), 'train_acc': str(train_accuracy), 'test_acc': str(test_acc)}
+    row = {
+        'epoch': str(epoch), 
+        'train_acc': str(train_accuracy), 
+        'test_acc': str(test_acc), 
+        "train_loss": str(mean_loss)
+        "train_num_masked_pixel": str(mean_num_masked_pixel)
+        "train_mean_gradcam_values": str(mean_gradcam_values)
+        "train_std_gradcam_values": str(mean_std_gradcam_values)
+    }
 
     # step in schedualer, logger, and save checkpoint if needed
     scheduler.step()
