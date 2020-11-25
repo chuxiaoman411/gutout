@@ -5,13 +5,21 @@ import torch
 from torch.autograd import Function
 from torchvision import models
 import matplotlib.pyplot as plt
-import os 
+import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 
-from src.gutout.generate_gutout_mask import get_args, GradCam, preprocess_image, show_cam_on_image, apply_gutout_mask, show_images, generate_gutout_mask
+from src.gutout.generate_gutout_mask import (
+    get_args,
+    GradCam,
+    preprocess_image,
+    show_cam_on_image,
+    apply_gutout_mask,
+    show_images,
+    generate_gutout_mask,
+)
 
 
 def test_generate_gutout():
@@ -24,13 +32,17 @@ def test_generate_gutout():
 
     args = get_args()
     if args.image_path is None:
-        args.image_path=r"tests\unit\blueno.jpeg"
+        args.image_path = r"tests\unit\blueno.jpeg"
     # Can work with any model, but it assumes that the model has a
     # feature method, and a classifier method,
     # as in the VGG models in torchvision.
     model = models.resnet18(pretrained=True)
-    grad_cam = GradCam(model=model, feature_module=model.layer4, \
-                       target_layer_names=["1"], use_cuda=args.use_cuda)
+    grad_cam = GradCam(
+        model=model,
+        feature_module=model.layer4,
+        target_layer_names=["1"],
+        use_cuda=args.use_cuda,
+    )
 
     img = cv2.imread(args.image_path, 1)
     img = np.float32(cv2.resize(img, (224, 224))) / 255
@@ -46,7 +58,7 @@ def test_generate_gutout():
     gutout_mask = generate_gutout_mask(0.7, mask)
     img_after_gutout = apply_gutout_mask(img, gutout_mask)
 
-    show_images([img,cam_on_image,img_after_gutout])
+    show_images([img, cam_on_image, img_after_gutout])
 
 
 if __name__ == "__main__":

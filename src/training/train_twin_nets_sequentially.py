@@ -14,7 +14,14 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 
 from src.gutout.gutout_utils import BatchGradCam
 from src.utils.data_utils import get_dataloaders
-from src.training.training_utils import get_args, get_optimizer_and_schedular, get_csv_logger, get_model, create_experiment_dir, run_epoch
+from src.training.training_utils import (
+    get_args,
+    get_optimizer_and_schedular,
+    get_csv_logger,
+    get_model,
+    create_experiment_dir,
+    run_epoch,
+)
 
 
 if __name__ == "__main__":
@@ -53,22 +60,40 @@ if __name__ == "__main__":
     scheduler = scheduler_a
     csv_logger = csv_logger_a
     best_acc = copy.copy(best_acc_a)
-    training_flag = 'a'
+    training_flag = "a"
 
     # in sequential training: if model a is training then also model_a is the gutout model
     gutout_model = model_a
 
     # create the gradCAM model
-    grad_cam = BatchGradCam(model=gutout_model, feature_module=getattr(gutout_model, args.feature_module),
-                        target_layer_names=[args.target_layer_names], use_cuda=args.use_cuda)
-
+    grad_cam = BatchGradCam(
+        model=gutout_model,
+        feature_module=getattr(gutout_model, args.feature_module),
+        target_layer_names=[args.target_layer_names],
+        use_cuda=args.use_cuda,
+    )
 
     ##### train model a #######
     for epoch in range(args.epochs):
         # run the training loop on a single model
         print(f"running epoch with model: {training_flag}")
-        best_acc = run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_logger, train_loader, test_loader, epoch, best_acc, max_num_batches, experiment_dir, experiment_id, args, model_flag=training_flag)
-
+        best_acc = run_epoch(
+            training_model,
+            grad_cam,
+            criterion,
+            optimizer,
+            scheduler,
+            csv_logger,
+            train_loader,
+            test_loader,
+            epoch,
+            best_acc,
+            max_num_batches,
+            experiment_dir,
+            experiment_id,
+            args,
+            model_flag=training_flag,
+        )
 
     # switch to training model b
     training_model = model_b
@@ -76,7 +101,7 @@ if __name__ == "__main__":
     scheduler = scheduler_b
     csv_logger = csv_logger_b
     best_acc = copy.copy(best_acc_b)
-    training_flag = 'b'
+    training_flag = "b"
 
     # if model b is training, the model a is the gutout model
     gutout_model = model_a
@@ -85,4 +110,20 @@ if __name__ == "__main__":
     for epoch in range(args.epochs):
         # run the training loop on a single model
         print(f"running epoch with model: {training_flag}")
-        best_acc = run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_logger, train_loader, test_loader, epoch, best_acc, max_num_batches, experiment_dir, experiment_id, args, model_flag=training_flag)
+        best_acc = run_epoch(
+            training_model,
+            grad_cam,
+            criterion,
+            optimizer,
+            scheduler,
+            csv_logger,
+            train_loader,
+            test_loader,
+            epoch,
+            best_acc,
+            max_num_batches,
+            experiment_dir,
+            experiment_id,
+            args,
+            model_flag=training_flag,
+        )

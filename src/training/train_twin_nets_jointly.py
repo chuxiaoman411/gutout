@@ -14,7 +14,14 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 
 from src.gutout.gutout_utils import BatchGradCam
 from src.utils.data_utils import get_dataloaders
-from src.training.training_utils import get_args, get_optimizer_and_schedular, get_csv_logger, get_model, create_experiment_dir, run_epoch
+from src.training.training_utils import (
+    get_args,
+    get_optimizer_and_schedular,
+    get_csv_logger,
+    get_model,
+    create_experiment_dir,
+    run_epoch,
+)
 
 
 if __name__ == "__main__":
@@ -53,21 +60,21 @@ if __name__ == "__main__":
     scheduler = scheduler_a
     csv_logger = csv_logger_a
     best_acc = best_acc_a
-    training_flag = 'a'
+    training_flag = "a"
 
     # if model a is training, the model b is the gutout model
     gutout_model = model_b
 
     for epoch in range(args.epochs * args.switch_interval):
         if epoch + 1 % args.switch_interval:
-            if training_flag == 'a':
+            if training_flag == "a":
                 # switch to training model b
                 training_model = model_b
                 optimizer = optimizer_b
                 scheduler = scheduler_b
                 csv_logger = csv_logger_b
                 best_acc = copy.copy(best_acc_b)
-                training_flag = 'b'
+                training_flag = "b"
 
                 # if model b is training, the model a is the gutout model
                 gutout_model = model_a
@@ -79,20 +86,40 @@ if __name__ == "__main__":
                 scheduler = scheduler_a
                 csv_logger = csv_logger_a
                 best_acc = copy.copy(best_acc_a)
-                training_flag = 'a'
+                training_flag = "a"
 
                 # if model a is training, the model b is the gutout model
                 gutout_model = model_b
 
         # create the gradCAM model
-        grad_cam = BatchGradCam(model=gutout_model, feature_module=getattr(gutout_model, args.feature_module),
-                            target_layer_names=[args.target_layer_names], use_cuda=args.use_cuda)
+        grad_cam = BatchGradCam(
+            model=gutout_model,
+            feature_module=getattr(gutout_model, args.feature_module),
+            target_layer_names=[args.target_layer_names],
+            use_cuda=args.use_cuda,
+        )
 
         # run the training loop on a single model
         print(f"running epoch with model: {training_flag}")
-        best_acc = run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_logger, train_loader, test_loader, epoch, best_acc, max_num_batches, experiment_dir, experiment_id, args, model_flag=training_flag)
+        best_acc = run_epoch(
+            training_model,
+            grad_cam,
+            criterion,
+            optimizer,
+            scheduler,
+            csv_logger,
+            train_loader,
+            test_loader,
+            epoch,
+            best_acc,
+            max_num_batches,
+            experiment_dir,
+            experiment_id,
+            args,
+            model_flag=training_flag,
+        )
 
-        if training_flag == 'a':
+        if training_flag == "a":
             best_acc_a = copy.copy(best_acc)
         else:
             best_acc_b = copy.copy(best_acc)

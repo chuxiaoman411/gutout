@@ -13,7 +13,14 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 
 from src.gutout.gutout_utils import BatchGradCam
 from src.utils.data_utils import get_dataloaders
-from src.training.training_utils import get_args, get_optimizer_and_schedular, get_csv_logger, get_model, create_experiment_dir, run_epoch
+from src.training.training_utils import (
+    get_args,
+    get_optimizer_and_schedular,
+    get_csv_logger,
+    get_model,
+    create_experiment_dir,
+    run_epoch,
+)
 
 
 if __name__ == "__main__":
@@ -44,9 +51,29 @@ if __name__ == "__main__":
     best_acc = -1
 
     # create a gradcam
-    grad_cam = BatchGradCam(model=gutout_model, feature_module=getattr(gutout_model, args.feature_module),
-                            target_layer_names=[args.target_layer_names], use_cuda=args.use_cuda)
+    grad_cam = BatchGradCam(
+        model=gutout_model,
+        feature_module=getattr(gutout_model, args.feature_module),
+        target_layer_names=[args.target_layer_names],
+        use_cuda=args.use_cuda,
+    )
 
     # run the training loop on a single model
     for epoch in range(args.epochs):
-        best_acc = run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_logger, train_loader, test_loader, epoch, best_acc, max_num_batches, experiment_dir, experiment_id, args, model_flag="a")
+        best_acc = run_epoch(
+            training_model,
+            grad_cam,
+            criterion,
+            optimizer,
+            scheduler,
+            csv_logger,
+            train_loader,
+            test_loader,
+            epoch,
+            best_acc,
+            max_num_batches,
+            experiment_dir,
+            experiment_id,
+            args,
+            model_flag="a",
+        )
