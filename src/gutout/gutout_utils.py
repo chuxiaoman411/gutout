@@ -314,7 +314,7 @@ def apply_batch_gutout_mask(images, masks, args):
 def gutout_images(grad_cam, images, args):
     masks = grad_cam(images)
     gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
-    avg_num_masked_pixel = np.sum(gutout_masks.numpy() == 0) / gutout_masks.shape[0]
+    avg_num_masked_pixel = np.sum(gutout_masks.clone().cpu().detach().numpy() == 0) / gutout_masks.shape[0]
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
 
     avg_gradcam_values = masks.mean()
