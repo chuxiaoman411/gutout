@@ -13,6 +13,7 @@ import os
 import sys
 import random
 import time
+from datetime import datetime
 
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
@@ -129,15 +130,15 @@ def get_model(args, weights_path=''):
         print(f"loaded weights from {weights_path}")
     else:
         print(f"didn't load weights into model, got path: {weights_path}")
-        
+
     return model
 
 def create_experiment_dir(args):
     experiment_id = args.dataset + '_' + args.model
-    current_time = time.localtime()
-    current_time = time.strftime(
-        "%H-%M-%S", current_time)
-    experiment_dir = current_time + " experiment_" + experiment_id
+    now = datetime.now()
+    dt_string = now.strftime("%d_%m_%Y_%H_%M_%S")
+
+    experiment_dir = dt_string + " experiment_" + experiment_id
 
     os.makedirs(experiment_dir)
     os.makedirs(os.path.join(experiment_dir, "checkpoints/"), exist_ok=True)

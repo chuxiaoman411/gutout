@@ -7,6 +7,7 @@ import torch.nn as nn
 import os
 import sys
 import time
+import copy
 
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
@@ -51,6 +52,7 @@ if __name__ == "__main__":
     optimizer = optimizer_a
     scheduler = scheduler_a
     csv_logger = csv_logger_a
+    best_acc = copy.copy(best_acc_a)
     training_flag = 'a'
 
     # in sequential training: if model a is training then also model_a is the gutout model
@@ -64,6 +66,7 @@ if __name__ == "__main__":
     ##### train model a #######
     for epoch in range(args.epochs):
         # run the training loop on a single model
+        print(f"running epoch with model: {training_flag}")
         best_acc = run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_logger, train_loader, test_loader, epoch, best_acc, max_num_batches, experiment_dir, experiment_id, args, model_flag=training_flag)
 
 
@@ -72,6 +75,7 @@ if __name__ == "__main__":
     optimizer = optimizer_b
     scheduler = scheduler_b
     csv_logger = csv_logger_b
+    best_acc = copy.copy(best_acc_b)
     training_flag = 'b'
 
     # if model b is training, the model a is the gutout model
@@ -80,4 +84,5 @@ if __name__ == "__main__":
     ##### train model a #######
     for epoch in range(args.epochs):
         # run the training loop on a single model
+        print(f"running epoch with model: {training_flag}")
         best_acc = run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_logger, train_loader, test_loader, epoch, best_acc, max_num_batches, experiment_dir, experiment_id, args, model_flag=training_flag)
