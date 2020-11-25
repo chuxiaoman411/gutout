@@ -25,7 +25,7 @@ if __name__ == "__main__":
     train_loader, test_loader = get_dataloaders(args)
 
     # create model and optimizer
-    model = get_model(args)
+    model = get_model(args, weights_path=args.model_a_path)
     optimizer, scheduler = get_optimizer_and_schedular(model, args)
 
     # create experiment dir, csv logg and criterion

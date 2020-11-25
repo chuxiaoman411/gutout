@@ -43,6 +43,10 @@ def get_args():
                         help='learning rate')
     parser.add_argument('--data_augmentation', action='store_true', default=False,
                         help='augment data by flipping and cropping')
+    parser.add_argument('--model_a_path', default='',
+                        help='path to the Resnet model used to generate gutout mask')
+    parser.add_argument('--model_b_path', default='',
+                        help='path to the Resnet model used to generate gutout mask')
 
     parser.add_argument('--length', type=int, default=16,
                         help='length of the holes')
@@ -113,12 +117,19 @@ def get_optimizer_and_schedular(model, args):
     scheduler = MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
     return optimizer, scheduler
 
-def get_model(args):
+def get_model(args, weights_path=''):
     if args.dataset == 'cifar10':
         num_classes = 10
     elif args.dataset == 'cifar100':
         num_classes = 100
     model = resnet18(num_classes=num_classes)
+
+    if os.path.isfile(weights_path):
+        model.load_state_dict(torch.load(weights_path, map_location='cpu'))
+        print(f"loaded weights from {weights_path}")
+    else:
+        print(f"didn't load weights into model, got path: {weights_path}")
+        
     return model
 
 def create_experiment_dir(args):
