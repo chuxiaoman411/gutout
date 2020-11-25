@@ -280,9 +280,9 @@ def generate_gutout_mask(threshold, mask):
 
 def generate_batch_gutout_mask(threshold, masks, filter_out="greater_than_thresh"):
     if filter_out == "greater_than_thresh":
-        gutout_mask = (masks <= threshold).float()
+        gutout_mask = (masks <= threshold).float() #got rid of .float()
     elif filter_out == "less_than_thresh":
-        gutout_mask = (masks >= threshold).float()
+        gutout_mask = (masks >= threshold).float() #got rid of .float()
     else:
         raise ValueError(
             "recieved unsuppored value for 'filter_out' entry, allowed values are: [greater_than_thresh, less_than_thresh]")
@@ -300,19 +300,19 @@ def apply_batch_gutout_mask(images, masks, args):
 def gutout_images(grad_cam, images, args):
     masks = grad_cam(images)
     gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
-    avg_num_masked_pixel = np.sum(gutout_masks.numpy() == 0)/gutout_masks.shape[0]
+    avg_num_masked_pixel = np.sum(gutout_masks.numpy() == 0)/gutout_masks.shape[0] #got rid of gutout_masks.numpy()
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
 
     return img_after_gutout, avg_num_masked_pixel
 
-def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
+def get_gutout_samples(model, epoch, experiment_dir, args, display_imgs=False): #added a key argument
     if args.dataset == 'cifar10':
-        path = "sample_imgs_cifar10"
+        path = "sample_imgs_cifar10" ## copied these from root folder to training folder
     elif args.dataset == 'cifar10':
-        path = "sample_imgs_cifar100"
+        path = "sample_imgs_cifar100" ## copied these from root folder to training folder
 
-    # grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
-    #                         target_layer_names=["0"], use_cuda=args.use_cuda)
+    grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
+                            target_layer_names=["0"], use_cuda=args.use_cuda)
 
     normalize = transforms.Normalize(mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
                                      std=[x / 255.0 for x in [63.0, 62.1, 66.7]])
@@ -325,17 +325,31 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
             img = np.float32(cv2.resize(img, (32, 32)))
             img = np.expand_dims(img, 0)
             images.append(img)
+            #temp_img = img[0,:,:,:] / 255.0
+            #print("temp img", temp_img)
+            #show_images([temp_img, temp_img, temp_img]) #added temporarily
+            #input("pause")
 
     images = np.concatenate(images,0)
     images = torch.from_numpy(images).permute(0, 3, 1, 2)
     #images = normalize(images)
 
     if args.use_cuda:
-        img_after_gutout, avg_num_masked_pixel = gutout_images(grad_cam, images, args)
+        img_after_gutout, avg_num_masked_pixel = gutout_images(
+            grad_cam, images, args) #deleted args.threshold as one of four arguments
         img_after_gutout = img_after_gutout.cpu().numpy()
     else:
-        img_after_gutout, avg_num_masked_pixel = gutout_images(grad_cam, images, args)
+        img_after_gutout, avg_num_masked_pixel = gutout_images(
+            grad_cam, images, args) #deleted args.threshold as one of four arguments
         img_after_gutout = img_after_gutout.numpy()
+    print("img_after_gutout", img_after_gutout.shape)
+    print("images", images.shape)
+    transposed_img = np.transpose(images[0,:,:,:], (1,2,0)) / 255.0
+    transposed_img_after_gutout = np.transpose(img_after_gutout[0,:,:,:], (1,2,0)) / 255.0
+    #mask = grad_cam(images)
+    #show_cam_on_image(images, )
+    show_images([transposed_img, transposed_img, transposed_img_after_gutout])
+    input("pause")
     print("Average number of pixels per image get gutout during sampling:",avg_num_masked_pixel)
     for i in range(len(names)):
         fn = "Epoch-"+str(epoch)+"-"+names[i]
