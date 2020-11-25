@@ -61,8 +61,8 @@ parser.add_argument('--seed', type=int, default=0,
 # GutOut arguments
 parser.add_argument('--gutout', action='store_true', default=False,
                     help='apply gutout')
-# parser.add_argument('--model_path', default=r'checkpoints/model.pt',
-#                     help='path to the Resnet model used to generate gutout mask')
+parser.add_argument('--model_path', default='checkpoints/model.pt',
+                    help='path to the Resnet model used to generate gutout mask')
 
 parser.add_argument('--threshold', type=float, default=0.9,
                     help='threshold for gutout')
@@ -177,21 +177,18 @@ elif args.dataset == 'cifar100':
 
 # create models
 if args.model == 'resnet18':
-    model_a = resnet18(num_classes=num_classes)
-    model_b = resnet18(num_classes=num_classes)
+    training_model = resnet18(num_classes=num_classes)
+    gutout_model = resnet(num_classes=num_classes)
+    gutout_model.load_state_dict(torch.load(args.model_path))
 
 # create optimizer, loss function and schedualer
-optimizer_a = torch.optim.SGD(model_a.parameters(), lr=args.learning_rate,
+optimizer = torch.optim.SGD(training_model.parameters(), lr=args.learning_rate,
                             momentum=0.9, nesterov=True, weight_decay=5e-4)
-scheduler_a = MultiStepLR(optimizer_a, milestones=[60, 120, 160], gamma=0.2)
-optimizer_b = torch.optim.SGD(model_a.parameters(), lr=args.learning_rate,
-                              momentum=0.9, nesterov=True, weight_decay=5e-4)
-scheduler_b = MultiStepLR(optimizer_b, milestones=[60, 120, 160], gamma=0.2)
+scheduler = MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
 
 criterion = nn.CrossEntropyLoss()
 if args.use_cuda:
-    model_a = model_a.cuda()
-    model_b = model_b.cuda()
+    training_model = training_model.cuda()
     criterion.cuda()
 
 experiment_id = args.dataset + '_' + args.model
@@ -202,31 +199,13 @@ experiment_dir = current_time + " experiment_" + experiment_id
 
 os.makedirs(experiment_dir)
 os.makedirs(os.path.join(experiment_dir, "checkpoints/"), exist_ok=True)
-csv_filename_a = os.path.join(experiment_dir, experiment_id + '_a.csv')
-csv_logger_a = CSVLogger(args=args, fieldnames=[
-                       'epoch', 'train_acc', 'test_acc'], filename=csv_filename_a)
-csv_filename_b = os.path.join(experiment_dir, experiment_id + '_b.csv')
-csv_logger_b = CSVLogger(args=args, fieldnames=[
-    'epoch', 'train_acc', 'test_acc'], filename=csv_filename_b)
-best_acc_a = -1
-best_acc_b = -1
+csv_filename = os.path.join(experiment_dir, experiment_id + '_gutout.csv')
+csv_logger = CSVLogger(args=args, fieldnames=[
+                       'epoch', 'train_acc', 'test_acc'], filename=csv_filename)
+best_acc = -1
 
-training_model = model_a
-gutout_model = model_b
-training_flag = 'a'
 
-for epoch in range(args.epochs*args.switch_interval):
-    if epoch + 1 % args.switch_interval:
-        if training_flag == 'a':
-            training_model = model_b
-            gutout_model = model_a
-            optimizer = optimizer_b
-            training_flag = 'b'
-        else:
-            training_model = model_a
-            gutout_model = model_b
-            optimizer = optimizer_a
-            training_flag = 'a'
+for epoch in range(args.epochs):
 
     grad_cam = BatchGradCam(model=gutout_model, feature_module=gutout_model.layer4,
                             target_layer_names=["1"], use_cuda=args.use_cuda)
@@ -237,19 +216,11 @@ for epoch in range(args.epochs*args.switch_interval):
     tqdm.write(training_flag+' test_acc: %.3f' % (test_acc))
     row = {'epoch': str(epoch), 'train_acc': str(train_accuracy), 'test_acc': str(test_acc)}
 
-    if training_flag == 'a':
-        scheduler_a.step()
-        csv_logger_a.writerow(row)
-        is_best = test_acc > best_acc_a
-        if is_best:
-            torch.save(training_model.state_dict(), os.path.join(
-                experiment_dir, 'checkpoints/' + experiment_id + '_a.pth'))
-    else:
-        scheduler_b.step()
-        csv_logger_b.writerow(row)
-        is_best = test_acc > best_acc_b
-        if is_best:
-            torch.save(training_model.state_dict(), os.path.join(
-                experiment_dir, 'checkpoints/' + experiment_id + '_b.pth'))
+    scheduler.step()
+    csv_logger.writerow(row)
+    is_best = test_acc > best_acc
+    if is_best:
+        torch.save(training_model.state_dict(), os.path.join(
+            experiment_dir, 'checkpoints/' + experiment_id + '_gutout.pth'))
 
     get_gutout_samples(training_model, epoch, experiment_dir, args)
