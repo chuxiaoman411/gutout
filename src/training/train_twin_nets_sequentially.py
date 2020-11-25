@@ -1,4 +1,4 @@
-# Build in progress
+# python src/training/train_twin_nets_sequentially.py --smoke_test 0
 
 import pdb
 import argparse
@@ -178,8 +178,7 @@ elif args.dataset == 'cifar100':
 # create models
 if args.model == 'resnet18':
     training_model = resnet18(num_classes=num_classes)
-    gutout_model = resnet(num_classes=num_classes)
-    gutout_model.load_state_dict(torch.load(args.model_path))
+    gutout_model = resnet18(pretrained=True, num_classes=num_classes)
 
 # create optimizer, loss function and schedualer
 optimizer = torch.optim.SGD(training_model.parameters(), lr=args.learning_rate,
