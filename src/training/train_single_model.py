@@ -4,23 +4,14 @@ import numpy as np
 from tqdm import tqdm
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
-import torch.backends.cudnn as cudnn
-from torch.optim.lr_scheduler import MultiStepLR
-from torchvision.utils import make_grid
-from torchvision import datasets, transforms
 import os
 import sys
-import random
 import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 
-from src.utils.misc import CSVLogger
-from src.utils.cutout import Cutout
-from src.gutout.gutout_utils import BatchGradCam, get_gutout_samples, gutout_images
-from src.models.resnet import resnet18
+from src.gutout.gutout_utils import BatchGradCam
 from src.utils.data_utils import get_dataloaders
 from src.training.training_utils import get_args, get_optimizer_and_schedular, get_csv_logger, get_model, create_experiment_dir, run_epoch
 
@@ -52,7 +43,7 @@ if __name__ == "__main__":
     training_model = model
     best_acc = -1
 
-    # create a gra
+    # create a gradcam
     grad_cam = BatchGradCam(model=gutout_model, feature_module=getattr(gutout_model, args.feature_module),
                             target_layer_names=[args.target_layer_names], use_cuda=args.use_cuda)
 

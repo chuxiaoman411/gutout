@@ -20,7 +20,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from src.utils.misc import CSVLogger
 from src.utils.cutout import Cutout
 from src.gutout.gutout_utils import BatchGradCam, get_gutout_samples, gutout_images
-from src.models.resnet import resnet18
+from src.models.resnet_cutout import ResNet18 as resnet18
 from src.utils.data_utils import get_dataloaders
 
 def get_args():
