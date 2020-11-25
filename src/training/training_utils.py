@@ -126,6 +126,11 @@ def create_experiment_dir(args):
     return experiment_dir, experiment_id
 
 
+def get_csv_logger(experiment_dir, experiment_id, model_flag="a"):
+    csv_filename = os.path.join(experiment_dir, experiment_id + f'_{model_flag}.csv')
+    csv_logger = CSVLogger(args=args, fieldnames=['epoch', 'train_acc', 'test_acc', "train_loss", "train_num_masked_pixel", "train_mean_gradcam_values", "train_std_gradcam_values"], filename=csv_filename)
+
+
 def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=None):
     model.train()
     xentropy_loss_avg = 0.
@@ -210,7 +215,7 @@ def test(model, test_loader, max_num_batches=None):
 
 
 
-def run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_logger, train_loader, test_loader, epoch, best_acc, max_num_batches, experiment_dir, experiment_id, args, training_flag="a"):
+def run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_logger, train_loader, test_loader, epoch, best_acc, max_num_batches, experiment_dir, experiment_id, args, model_flag="a"):
 
     # run train epoch
     train_accuracy, mean_loss, mean_num_masked_pixel, mean_gradcam_values, mean_std_gradcam_values = train(training_model, grad_cam, criterion,
@@ -226,10 +231,10 @@ def run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_log
         'epoch': str(epoch), 
         'train_acc': str(train_accuracy), 
         'test_acc': str(test_acc), 
-        "train_loss": str(mean_loss)
-        "train_num_masked_pixel": str(mean_num_masked_pixel)
-        "train_mean_gradcam_values": str(mean_gradcam_values)
-        "train_std_gradcam_values": str(mean_std_gradcam_values)
+        "train_loss": str(mean_loss),
+        "train_num_masked_pixel": str(mean_num_masked_pixel),
+        "train_mean_gradcam_values": str(mean_gradcam_values),
+        "train_std_gradcam_values": str(mean_std_gradcam_values),
     }
 
     # step in schedualer, logger, and save checkpoint if needed
@@ -238,7 +243,7 @@ def run_epoch(training_model, grad_cam, criterion, optimizer, scheduler, csv_log
     is_best = test_acc > best_acc
     if is_best:
         torch.save(training_model.state_dict(), os.path.join(
-            experiment_dir, 'checkpoints/' + experiment_id + f'_{training_flag}.pth'))
+            experiment_dir, 'checkpoints/' + experiment_id + f'_{model_flag}.pth'))
         best_acc = test_acc
 
     # save images
