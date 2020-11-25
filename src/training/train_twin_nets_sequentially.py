@@ -1,4 +1,4 @@
-# python src/training/train_twin_nets_sequentially.py --smoke_test 0
+# python src/training/train_twin_nets_sequentially.py --smoke_test 0 --model_path checkpoints/naked.pt --use_cuda --epochs 200
 
 import pdb
 import argparse
@@ -72,19 +72,9 @@ parser.add_argument('--mu', type=float, default=0.9,
                     help='mu for Gaussian Distribution')
 parser.add_argument('--sigma', type=float, default=0.1,
                     help='sigma for Gaussian Distribution')
-
-# Joint training arguments
-parser.add_argument('--epochs', type=int, default=20,
+parser.add_argument('--epochs', type=int, default=200,
                     help='number of epochs to train each network')
-parser.add_argument('--switch_interval', type=int, default=2,
-                    help='frequency of switching between the training model and the gutout model')
 
-args = parser.parse_args()
-max_num_batches = None
-if args.smoke_test:
-    args.batch_size = 2
-    args.epochs = 6
-    max_num_batches = 2
 
 def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=None):
     model.train()
@@ -150,14 +140,17 @@ def test(model, test_loader, max_num_batches=None):
 
         if max_num_batches is not None and i >= max_num_batches:
             break
-    val_acc = correct / total
-    return val_acc
 
+    return corret / total
 
 args = parser.parse_args()
-print(args)
-
+max_num_batches = None
 args.cuda = args.use_cuda
+if args.smoke_test:
+    args.batch_size = 2
+    args.epochs = 6
+    max_num_batches = 2
+
 cudnn.benchmark = True  # Should make training go faster for large models
 
 torch.manual_seed(args.seed)
@@ -166,7 +159,8 @@ if args.cuda:
 
 if args.random_threshold:
     args.threshold = random.gauss(float(args.mu), float(args.sigma))
-    print("Using threshold ", args.threshold)
+
+print(args)
 
 # get dataloaders
 train_loader, test_loader = get_dataloaders(args)
@@ -231,4 +225,5 @@ for epoch in range(args.epochs):
 
 if not args.gutout:
     torch.save(training_model.state_dict(), args.model_path)
-    csv_logger.close()
+
+csv_logger.close()

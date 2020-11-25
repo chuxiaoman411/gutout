@@ -251,3 +251,5 @@ for epoch in range(args.epochs*args.switch_interval):
                 experiment_dir, 'checkpoints/' + experiment_id + '_b.pth'))
 
     get_gutout_samples(training_model, epoch, experiment_dir, args)
+
+csv_logger.close()
