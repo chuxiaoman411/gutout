@@ -1,4 +1,5 @@
-# python src/training/train_twin_nets_sequentially.py --smoke_test 0 --model_path checkpoints/naked.pt --use_cuda --epochs 200
+# Running without --gutout saves a .pt file to --model_path
+# Running with --gutout loads the .pt file from --model_path as gutout_model
 
 import pdb
 import argparse
