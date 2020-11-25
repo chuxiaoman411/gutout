@@ -21,18 +21,20 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from src.utils.misc import CSVLogger
 from src.utils.cutout import Cutout
 from src.gutout.gutout_utils import BatchGradCam, get_gutout_samples, gutout_images
-from src.models.resnet_cutout import ResNet18 as resnet18
+from src.models.resnet_cutout import ResNet18 as cutout_resnet18
+from src.models.resnet_torchvision import resnet18 as torchvision_resnet18
 from src.utils.data_utils import get_dataloaders
 
 
 def get_args():
 
-    model_options = ["resnet18"]
+    model_options = ["torchvision_resnet18", "cutout_resnet18"]
+    print(f"model options = {model_options}")
     dataset_options = ["cifar10", "cifar100", "svhn"]
 
     parser = argparse.ArgumentParser(description="CNN")
     parser.add_argument("--dataset", "-d", default="cifar10", choices=dataset_options)
-    parser.add_argument("--model", "-a", default="resnet18", choices=model_options)
+    parser.add_argument("--model", "-a", default="torchvision_resnet18", choices=model_options)
     parser.add_argument(
         "--batch_size",
         type=int,
@@ -173,7 +175,13 @@ def get_model(args, weights_path=""):
         num_classes = 10
     elif args.dataset == "cifar100":
         num_classes = 100
-    model = resnet18(num_classes=num_classes)
+
+    if args.model == "torchvision_resnet18":
+        model = torchvision_resnet18(num_classes=num_classes)
+    elif args.model == "cutout_resnet18":
+        model = cutout_resnet18(num_classes=num_classes)
+    else:
+        raise ValueError("got invalid model type, allowed models are ['out_resnet18', 'cutout_resnet18']")
 
     if os.path.isfile(weights_path):
         model.load_state_dict(torch.load(weights_path, map_location="cpu"))
@@ -270,8 +278,8 @@ def train(
         accuracy = correct / total
         mean_loss = xentropy_loss_sum / (i + 1)
         mean_num_masked_pixel = avg_num_masked_pixel_sum / (i + 1)
-        mean_gradcam_values = avg_num_masked_pixel_sum / (i + 1)
-        mean_std_gradcam_values = avg_num_masked_pixel_sum / (i + 1)
+        mean_gradcam_values = avg_gradcam_values_sum / (i + 1)
+        mean_std_gradcam_values = std_gradcam_values_sum / (i + 1)
 
         progress_bar.set_postfix(
             xentropy="%.3f" % (mean_loss),
