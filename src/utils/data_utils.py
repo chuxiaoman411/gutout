@@ -18,8 +18,11 @@ def get_datasets(args):
     if args.data_augmentation:
         train_transform.transforms.append(transforms.RandomCrop(32, padding=4))
         train_transform.transforms.append(transforms.RandomHorizontalFlip())
+        
     train_transform.transforms.append(transforms.ToTensor())
     train_transform.transforms.append(normalize)
+
+
     if args.cutout:
         train_transform.transforms.append(Cutout(n_holes=args.n_holes, length=args.length))
 

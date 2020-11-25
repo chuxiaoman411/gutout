@@ -70,7 +70,15 @@ parser.add_argument('--mu', type=float, default=0.9,
                     help='mu for Gaussian Distribution')
 parser.add_argument('--sigma', type=float, default=0.1,
                     help='sigma for Gaussian Distribution')
+parser.add_argument('--feature_module', type=str, default="layer1",
+                    help='the resnet block from which to take the gradCAM')
+parser.add_argument('--feature_module', type=str, default="layer1",
+                    help='the resnet block from which to take the gradCAM')
+parser.add_argument('--target_layer_names', type=str, default="0",
+                    help='the layer of the selected resnet block from which to take the gradCAM')
 
+
+                    
 # Joint training arguments
 parser.add_argument('--epochs', type=int, default=20,
                     help='number of epochs to train each network')
@@ -179,7 +187,7 @@ if args.model == 'resnet18':
     model_b = resnet18(num_classes=num_classes)
 
     ### newly added by esther:
-    model_b.load_state_dict(torch.load('cifar10_resnet18_acc0.7985_.pth',map_location='cpu'))
+    # model_b.load_state_dict(torch.load('cifar10_resnet18_acc0.7985_.pth',map_location='cpu'))
 
 # create optimizer, loss function and schedualer
 optimizer_a = torch.optim.SGD(model_a.parameters(), lr=args.learning_rate,
@@ -229,10 +237,13 @@ for epoch in range(args.epochs*args.switch_interval):
             optimizer = optimizer_a
             training_flag = 'a'
 
-    grad_cam = BatchGradCam(model=gutout_model, feature_module=gutout_model.layer4,
-                            target_layer_names=["1"], use_cuda=args.use_cuda)
+
+    grad_cam = BatchGradCam(model=gutout_model, feature_module=getattr(gutout_model, args.feature_module),
+                            target_layer_names=[args.target_layer_names], use_cuda=args.use_cuda)
+
     train_accuracy = train(training_model, grad_cam, criterion,
                            optimizer, train_loader, max_num_batches)
+                           
     test_acc = test(training_model, test_loader, max_num_batches)
 
     tqdm.write(training_flag+' test_acc: %.3f' % (test_acc))
@@ -253,4 +264,4 @@ for epoch in range(args.epochs*args.switch_interval):
             torch.save(training_model.state_dict(), os.path.join(
                 experiment_dir, 'checkpoints/' + experiment_id + '_b.pth'))
 
-    get_gutout_samples(training_model, epoch, experiment_dir, args)
+    get_gutout_samples(training_model, grad_cam, epoch, experiment_dir, args)

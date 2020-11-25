@@ -300,10 +300,13 @@ def apply_batch_gutout_mask(images, masks, args):
 def gutout_images(grad_cam, images, args):
     masks = grad_cam(images)
     gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
-    avg_num_masked_pixel = np.sum(gutout_masks.numpy() == 0)/gutout_masks.shape[0]
+    avg_num_masked_pixel = np.sum(gutout_masks.numpy() == 0) / gutout_masks.shape[0]
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
 
-    return img_after_gutout, avg_num_masked_pixel
+    avg_gradcam_values = masks.mean()
+    std_gradcam_values = masks.std()
+
+    return img_after_gutout, avg_num_masked_pixel, avg_gradcam_values, std_gradcam_values
 
 def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     if args.dataset == 'cifar10':

@@ -18,7 +18,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__)))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 
 from src.utils.data_utils import get_dataloaders
-from src.models.resnet import resnet18
+# from src.models.resnet import resnet18
+from src.models.resnet_cutout import ResNet18 as resnet18
+
 from src.gutout.gutout_utils import BatchGradCam, get_gutout_samples, gutout_images
 from src.utils.cutout import Cutout
 from src.utils.misc import CSVLogger
@@ -55,11 +57,7 @@ parser.add_argument('--seed', type=int, default=0,
                     help='random seed (default: 1)')
 
 # GutOut arguments
-<<<<<<< HEAD
-parser.add_argument('--gutout', action='store_true', default=True,
-=======
 parser.add_argument('--gutout', action='store_true', default=True, #was False
->>>>>>> esther_dev
                     help='apply gutout')
 parser.add_argument('--model_path', default=r'cifar10_resnet18_acc0.7985_.pth', #originally: 'cifar10_resnet18_acc0.7985_.pth'
                     help='path to the Resnet model used to generate gutout mask')
@@ -92,11 +90,7 @@ def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=N
 
         # conduct gutout
         if args.gutout:
-<<<<<<< HEAD
-            images, avg_num_masked_pixels = gutout_images(grad_cam, images, threshold=args.threshold, args=args)
-=======
             images, _ = gutout_images(grad_cam, images, args=args)
->>>>>>> esther_dev
 
         optimizer.zero_grad()
         pred = model(images)
@@ -150,15 +144,9 @@ def test(model, test_loader, max_num_batches=None):
 args = parser.parse_args()
 max_num_batches = None
 if args.smoke_test == 1:
-<<<<<<< HEAD
-    args.batch_size = 32
-    args.epochs = 3
-    max_num_batches = 16
-=======
     args.batch_size = 2
     args.epochs = 115 #originally 3
     max_num_batches = 2
->>>>>>> esther_dev
 print(args)
 
 args.cuda = args.use_cuda
@@ -183,15 +171,9 @@ elif args.dataset == 'cifar100':
 # create model
 if args.model == 'resnet18':
     model = resnet18(num_classes=num_classes)
-<<<<<<< HEAD
-# if args.gutout:
-#     model_for_gutout = resnet18(num_classes=num_classes)
-#     model_for_gutout.load_state_dict(torch.load(args.model_path))
-=======
 if args.gutout:
     model_for_gutout = resnet18(num_classes=num_classes)
-    model_for_gutout.load_state_dict(torch.load(args.model_path, map_location='cpu'))
->>>>>>> esther_dev
+    # model_for_gutout.load_state_dict(torch.load(args.model_path, map_location='cpu'))
 
 
 # create optimizer, loss function and schedualer
