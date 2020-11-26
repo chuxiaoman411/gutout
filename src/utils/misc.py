@@ -1,17 +1,17 @@
 import csv
 
 
-class CSVLogger():
-    def __init__(self, args, fieldnames, filename='log.csv'):
+class CSVLogger:
+    def __init__(self, args, fieldnames, filename="log.csv"):
 
         self.filename = filename
-        self.csv_file = open(filename, 'w')
+        self.csv_file = open(filename, "w")
 
         # Write model configuration at top of csv
         writer = csv.writer(self.csv_file)
         for arg in vars(args):
             writer.writerow([arg, getattr(args, arg)])
-        writer.writerow([''])
+        writer.writerow([""])
 
         self.writer = csv.DictWriter(self.csv_file, fieldnames=fieldnames)
         self.writer.writeheader()
