@@ -23,10 +23,17 @@ def get_datasets(args):
     if args.cutout:
         train_transform.transforms.append(Cutout(n_holes=args.n_holes, length=args.length))
 
+    #resize to 224*224
+    resize = transforms.Resize((224,224))
+    train_transform.transforms.append(resize)
 
+    # test_transform = transforms.Compose([
+    #     transforms.ToTensor(),
+    #     normalize])
     test_transform = transforms.Compose([
         transforms.ToTensor(),
-        normalize])
+        normalize,
+        resize])
 
     if args.dataset == 'cifar10':
         num_classes = 10

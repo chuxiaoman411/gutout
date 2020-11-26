@@ -10,9 +10,10 @@ from src.models.resnet import resnet18
 from src.gutout.gutout_utils import BatchGradCam, get_gutout_samples, gutout_images
 
 num_classes = 10
-model = resnet18(num_classes=num_classes)
+
 
 path = 'run/checkpoints/cifar10_resnet18_Epoch_45acc0.7484_.pth'
+model = resnet18(num_classes=num_classes)
 model.load_state_dict(torch.load(path,map_location='cpu'))
 
 grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
