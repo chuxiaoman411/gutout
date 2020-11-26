@@ -7,3 +7,4 @@ bash*
 checkpoints
 *experiment*
 **experiment**
+.DS_Store

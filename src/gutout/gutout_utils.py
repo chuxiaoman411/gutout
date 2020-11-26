@@ -346,14 +346,8 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     for f in os.listdir(path):
         if "png" in f:
             names.append(f)
-<<<<<<< HEAD
-            img = cv2.imread(os.path.join(path,f), 1)
-            img = np.float32(cv2.resize(img, (224, 224)))
-            # img = np.float32(cv2.resize(img, (32, 32)))
-=======
             img = cv2.imread(os.path.join(path, f), 1)
             img = np.float32(cv2.resize(img, (32, 32)))
->>>>>>> 0c1aefd6d07a2e8d2e2a670e13b403bb0d35b0a5
             img = np.expand_dims(img, 0)
             images.append(img)
 

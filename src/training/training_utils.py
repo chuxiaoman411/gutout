@@ -26,7 +26,7 @@ from src.models.resnet_torchvision import resnet18 as torchvision_resnet18
 from src.utils.data_utils import get_dataloaders
 
 
-def get_args():
+def get_args(hypterparameters_tune=False):
 
     model_options = ["torchvision_resnet18", "cutout_resnet18"]
     print(f"model options = {model_options}")
@@ -34,7 +34,7 @@ def get_args():
 
     parser = argparse.ArgumentParser(description="CNN")
     parser.add_argument("--dataset", "-d", default="cifar10", choices=dataset_options)
-    parser.add_argument("--model", "-a", default="torchvision_resnet18", choices=model_options)
+    parser.add_argument("--model", "-a", default="cutout_resnet18", choices=model_options)
     parser.add_argument(
         "--batch_size",
         type=int,
@@ -135,6 +135,31 @@ def get_args():
         help="frequency of switching between the training model and the gutout model",
     )
 
+
+    # Hyperparameter tuning arguments
+    if hypterparameters_tune:
+        parser.add_argument(
+            "--decision", type=str, default="deterministic", choices=["deterministic", "stochastic"],
+            help="how to decide the gutout threshold"
+        )
+        parser.add_argument(
+            "--deterministic_range", type=str, default="[0.7, 0.9, 0.05]",
+            help="grid search range for deterministic threshold"
+        )
+        parser.add_argument(
+            "--mu_range", type=str, default="[0.7, 0.9, 0.1]",
+            help="grid search range for mu"
+        )
+        parser.add_argument(
+            "--sigma_range", type=str, default="[0.1, 0.2, 0.05]",
+            help="grid search range for sigma"
+        )
+        parser.add_argument(
+            "--log_interval", type=int, default=5,
+            help="interval for logging model performance give the current hypterparameters"
+        )
+   
+    
     args = parser.parse_args()
     max_num_batches = None
     args.cuda = args.use_cuda
@@ -181,7 +206,7 @@ def get_model(args, weights_path=""):
     elif args.model == "cutout_resnet18":
         model = cutout_resnet18(num_classes=num_classes)
     else:
-        raise ValueError("got invalid model type, allowed models are ['out_resnet18', 'cutout_resnet18']")
+        raise ValueError("got invalid model type, allowed models are ['torchvision_resnet18', 'cutout_resnet18']")
 
     if os.path.isfile(weights_path):
         model.load_state_dict(torch.load(weights_path, map_location="cpu"))
@@ -394,3 +419,4 @@ def run_epoch(
     get_gutout_samples(training_model, grad_cam, epoch, experiment_dir, args)
 
     return best_acc
+

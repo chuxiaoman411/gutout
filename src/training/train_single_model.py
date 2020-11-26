@@ -35,7 +35,7 @@ if __name__ == "__main__":
     model = get_model(args, weights_path=args.model_a_path)
     optimizer, scheduler = get_optimizer_and_schedular(model, args)
 
-    # create experiment dir, csv logg and criterion
+    # create experiment dir, csv logger and criterion
     experiment_dir, experiment_id = create_experiment_dir(args)
     csv_logger = get_csv_logger(experiment_dir, experiment_id, args, model_flag="a")
     criterion = nn.CrossEntropyLoss()
