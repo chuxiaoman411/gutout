@@ -86,6 +86,13 @@ def train(model, grad_cam, criterion, optimizer, train_loader, max_num_batches=N
             images = images.cuda()
             labels = labels.cuda()
 
+        #RESIZING here
+        #print("images before", images.size())
+        #resize = transforms.Resize((224,224),interpolation=2)
+        #images = resize(images)
+        #print("images after", images.size())
+        #input("pause")
+
         # conduct gutout
         if args.gutout:
             images, _ = gutout_images(grad_cam, images, args=args)

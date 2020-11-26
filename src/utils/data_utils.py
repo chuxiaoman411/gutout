@@ -20,6 +20,8 @@ def get_datasets(args):
         train_transform.transforms.append(transforms.RandomHorizontalFlip())
     train_transform.transforms.append(transforms.ToTensor())
     train_transform.transforms.append(normalize)
+    resize = transforms.Resize((224,224),interpolation=2) #newly added
+    train_transform.transforms.append(resize) #newly added
     if args.cutout:
         train_transform.transforms.append(Cutout(n_holes=args.n_holes, length=args.length))
 

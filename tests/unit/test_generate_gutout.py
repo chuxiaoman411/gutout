@@ -5,7 +5,7 @@ import torch
 from torch.autograd import Function
 from torchvision import models
 import matplotlib.pyplot as plt
-import os 
+import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__)))

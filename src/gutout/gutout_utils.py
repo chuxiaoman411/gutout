@@ -297,10 +297,18 @@ def apply_batch_gutout_mask(images, masks, args):
     return images * masks
 
 
-def gutout_images(grad_cam, images, args):
+def gutout_images(grad_cam, images, args, report_stats=False):
     masks = grad_cam(images)
+    print("type of masks", type(masks))
+    print("size of masks", masks.size())
+    print("masks", masks)
+    input("pause")
     gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
     avg_num_masked_pixel = np.sum(gutout_masks.numpy() == 0)/gutout_masks.shape[0]
+    print("type of gutout_masks", type(gutout_masks))
+    print("size of gutout_masks", gutout_masks.size())
+    print("gutout_masks", gutout_masks)
+    input("pause")
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
 
     return img_after_gutout, avg_num_masked_pixel
@@ -322,7 +330,7 @@ def get_gutout_samples(model, epoch, experiment_dir, args):
         if "png" in f:
             names.append(f)
             img = cv2.imread(os.path.join(path,f), 1)
-            img = np.float32(cv2.resize(img, (32, 32)))
+            img = np.float32(cv2.resize(img, (224, 224))) #32, 32
             img = np.expand_dims(img, 0)
             images.append(img)
 
