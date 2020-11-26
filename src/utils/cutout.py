@@ -8,6 +8,7 @@ class Cutout(object):
         n_holes (int): Number of patches to cut out of each image.
         length (int): The length (in pixels) of each square patch.
     """
+
     def __init__(self, n_holes, length):
         self.n_holes = n_holes
         self.length = length
@@ -33,7 +34,7 @@ class Cutout(object):
             x1 = np.clip(x - self.length // 2, 0, w)
             x2 = np.clip(x + self.length // 2, 0, w)
 
-            mask[y1: y2, x1: x2] = 0.
+            mask[y1:y2, x1:x2] = 0.0
 
         mask = torch.from_numpy(mask)
         mask = mask.expand_as(img)

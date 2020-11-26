@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 import os
 from torchvision import transforms
 
-class FeatureExtractor():
+
+class FeatureExtractor:
     """ Class for extracting activations and
     registering gradients from targetted intermediate layers """
 
@@ -32,7 +33,7 @@ class FeatureExtractor():
         return outputs, x
 
 
-class ModelOutputs():
+class ModelOutputs:
     """ Class for making a forward pass, and getting:
     1. The network output.
     2. Activations from intermeddiate targetted layers.
@@ -41,8 +42,7 @@ class ModelOutputs():
     def __init__(self, model, feature_module, target_layers):
         self.model = model
         self.feature_module = feature_module
-        self.feature_extractor = FeatureExtractor(
-            self.feature_module, target_layers)
+        self.feature_extractor = FeatureExtractor(self.feature_module, target_layers)
 
     def get_gradients(self):
         return self.feature_extractor.gradients
@@ -60,6 +60,7 @@ class ModelOutputs():
 
         return target_activations, x
 
+
 class GradCam:
     def __init__(self, model, feature_module, target_layer_names, use_cuda):
         self.model = model
@@ -70,7 +71,8 @@ class GradCam:
             self.model = model.cuda()
 
         self.extractor = ModelOutputs(
-            self.model, self.feature_module, target_layer_names)
+            self.model, self.feature_module, target_layer_names
+        )
 
     def forward(self, input):
         return self.model(input)
@@ -124,7 +126,8 @@ class BatchGradCam:
             self.model = model.cuda()
 
         self.extractor = ModelOutputs(
-            self.model, self.feature_module, target_layer_names)
+            self.model, self.feature_module, target_layer_names
+        )
 
     def forward(self, input):
         return self.model(input)
@@ -150,8 +153,11 @@ class BatchGradCam:
         self.model.zero_grad()
 
         # extract gradients and features
-        proxy_loss = torch.sum(
-            one_hot.cuda() * output) if self.cuda else torch.sum(one_hot * output)
+        proxy_loss = (
+            torch.sum(one_hot.cuda() * output)
+            if self.cuda
+            else torch.sum(one_hot * output)
+        )
         proxy_loss.backward(retain_graph=True)
         grads_val = self.extractor.get_gradients()[-1]
         target = features[-1]
@@ -176,12 +182,12 @@ class BatchGradCam:
 
 
 class GuidedBackpropReLU(Function):
-
     @staticmethod
     def forward(self, input):
         positive_mask = (input > 0).type_as(input)
-        output = torch.addcmul(torch.zeros(
-            input.size()).type_as(input), input, positive_mask)
+        output = torch.addcmul(
+            torch.zeros(input.size()).type_as(input), input, positive_mask
+        )
         self.save_for_backward(input, output)
         return output
 
@@ -192,9 +198,13 @@ class GuidedBackpropReLU(Function):
 
         positive_mask_1 = (input > 0).type_as(grad_output)
         positive_mask_2 = (grad_output > 0).type_as(grad_output)
-        grad_input = torch.addcmul(torch.zeros(input.size()).type_as(input),
-                                   torch.addcmul(torch.zeros(input.size()).type_as(input), grad_output,
-                                                 positive_mask_1), positive_mask_2)
+        grad_input = torch.addcmul(
+            torch.zeros(input.size()).type_as(input),
+            torch.addcmul(
+                torch.zeros(input.size()).type_as(input), grad_output, positive_mask_1
+            ),
+            positive_mask_2,
+        )
 
         return grad_input
 
@@ -210,7 +220,7 @@ class GuidedBackpropReLUModel:
         def recursive_relu_apply(module_top):
             for idx, module in module_top._modules.items():
                 recursive_relu_apply(module)
-                if module.__class__.__name__ == 'ReLU':
+                if module.__class__.__name__ == "ReLU":
                     module_top._modules[idx] = GuidedBackpropReLU.apply
 
         # replace ReLU with GuidedBackpropReLU
@@ -248,10 +258,13 @@ class GuidedBackpropReLUModel:
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--use-cuda', action='store_true', default=False,
-                        help='Use NVIDIA GPU acceleration')
-    parser.add_argument('--image-path', type=str,
-                        help='Input image path')
+    parser.add_argument(
+        "--use-cuda",
+        action="store_true",
+        default=False,
+        help="Use NVIDIA GPU acceleration",
+    )
+    parser.add_argument("--image-path", type=str, help="Input image path")
     args = parser.parse_args()
     args.use_cuda = args.use_cuda and torch.cuda.is_available()
     if args.use_cuda:
@@ -269,7 +282,7 @@ def deprocess_image(img):
     img = img * 0.1
     img = img + 0.5
     img = np.clip(img, 0, 1)
-    return np.uint8(img*255)
+    return np.uint8(img * 255)
 
 
 def generate_gutout_mask(threshold, mask):
@@ -280,12 +293,13 @@ def generate_gutout_mask(threshold, mask):
 
 def generate_batch_gutout_mask(threshold, masks, filter_out="greater_than_thresh"):
     if filter_out == "greater_than_thresh":
-        gutout_mask = (masks <= threshold).float() #got rid of .float()
+        gutout_mask = (masks <= threshold).float()  # got rid of .float()
     elif filter_out == "less_than_thresh":
-        gutout_mask = (masks >= threshold).float() #got rid of .float()
+        gutout_mask = (masks >= threshold).float()  # got rid of .float()
     else:
         raise ValueError(
-            "recieved unsuppored value for 'filter_out' entry, allowed values are: [greater_than_thresh, less_than_thresh]")
+            "recieved unsuppored value for 'filter_out' entry, allowed values are: [greater_than_thresh, less_than_thresh]"
+        )
 
     return gutout_mask
 
@@ -300,62 +314,85 @@ def apply_batch_gutout_mask(images, masks, args):
 def gutout_images(grad_cam, images, args):
     masks = grad_cam(images)
     gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
-    avg_num_masked_pixel = np.sum(gutout_masks.numpy() == 0)/gutout_masks.shape[0] #got rid of gutout_masks.numpy()
+    avg_num_masked_pixel = (
+        np.sum(gutout_masks.numpy() == 0) / gutout_masks.shape[0]
+    )  # got rid of gutout_masks.numpy()
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
 
     return img_after_gutout, avg_num_masked_pixel
 
-def get_gutout_samples(model, epoch, experiment_dir, args, display_imgs=False): #added a key argument
-    if args.dataset == 'cifar10':
-        path = "sample_imgs_cifar10" ## copied these from root folder to training folder
-    elif args.dataset == 'cifar10':
-        path = "sample_imgs_cifar100" ## copied these from root folder to training folder
 
-    grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
-                            target_layer_names=["0"], use_cuda=args.use_cuda)
+def get_gutout_samples(
+    model, epoch, experiment_dir, args, display_imgs=False
+):  # added a key argument
+    if args.dataset == "cifar10":
+        path = (
+            "sample_imgs_cifar10"  ## copied these from root folder to training folder
+        )
+    elif args.dataset == "cifar10":
+        path = (
+            "sample_imgs_cifar100"  ## copied these from root folder to training folder
+        )
 
-    normalize = transforms.Normalize(mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
-                                     std=[x / 255.0 for x in [63.0, 62.1, 66.7]])
+    grad_cam = BatchGradCam(
+        model=model,
+        feature_module=model.layer3,
+        target_layer_names=["0"],
+        use_cuda=args.use_cuda,
+    )
+
+    normalize = transforms.Normalize(
+        mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
+        std=[x / 255.0 for x in [63.0, 62.1, 66.7]],
+    )
     images = []
     names = []
     for f in os.listdir(path):
         if "png" in f:
             names.append(f)
-            img = cv2.imread(os.path.join(path,f), 1)
+            img = cv2.imread(os.path.join(path, f), 1)
             img = np.float32(cv2.resize(img, (32, 32)))
             img = np.expand_dims(img, 0)
             images.append(img)
-            #temp_img = img[0,:,:,:] / 255.0
-            #print("temp img", temp_img)
-            #show_images([temp_img, temp_img, temp_img]) #added temporarily
-            #input("pause")
+            # temp_img = img[0,:,:,:] / 255.0
+            # print("temp img", temp_img)
+            # show_images([temp_img, temp_img, temp_img]) #added temporarily
+            # input("pause")
 
-    images = np.concatenate(images,0)
+    images = np.concatenate(images, 0)
     images = torch.from_numpy(images).permute(0, 3, 1, 2)
-    #images = normalize(images)
+    # images = normalize(images)
 
     if args.use_cuda:
         img_after_gutout, avg_num_masked_pixel = gutout_images(
-            grad_cam, images, args) #deleted args.threshold as one of four arguments
+            grad_cam, images, args
+        )  # deleted args.threshold as one of four arguments
         img_after_gutout = img_after_gutout.cpu().numpy()
     else:
         img_after_gutout, avg_num_masked_pixel = gutout_images(
-            grad_cam, images, args) #deleted args.threshold as one of four arguments
+            grad_cam, images, args
+        )  # deleted args.threshold as one of four arguments
         img_after_gutout = img_after_gutout.numpy()
     print("img_after_gutout", img_after_gutout.shape)
     print("images", images.shape)
-    transposed_img = np.transpose(images[0,:,:,:], (1,2,0)) / 255.0
-    transposed_img_after_gutout = np.transpose(img_after_gutout[0,:,:,:], (1,2,0)) / 255.0
-    #mask = grad_cam(images)
-    #show_cam_on_image(images, )
+    transposed_img = np.transpose(images[0, :, :, :], (1, 2, 0)) / 255.0
+    transposed_img_after_gutout = (
+        np.transpose(img_after_gutout[0, :, :, :], (1, 2, 0)) / 255.0
+    )
+    # mask = grad_cam(images)
+    # show_cam_on_image(images, )
     show_images([transposed_img, transposed_img, transposed_img_after_gutout])
     input("pause")
-    print("Average number of pixels per image get gutout during sampling:",avg_num_masked_pixel)
+    print(
+        "Average number of pixels per image get gutout during sampling:",
+        avg_num_masked_pixel,
+    )
     for i in range(len(names)):
-        fn = "Epoch-"+str(epoch)+"-"+names[i]
-        path = os.path.join(experiment_dir,fn)
-        img = np.transpose(img_after_gutout[i], (1,2,0))
+        fn = "Epoch-" + str(epoch) + "-" + names[i]
+        path = os.path.join(experiment_dir, fn)
+        img = np.transpose(img_after_gutout[i], (1, 2, 0))
         cv2.imwrite(path, img)
+
 
 def show_cam_on_image(img, mask):
     heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
@@ -365,6 +402,7 @@ def show_cam_on_image(img, mask):
     cam = np.uint8(255 * cam)
 
     return cam
+
 
 def show_images(images):
     n = len(images)
