@@ -10,7 +10,7 @@ def get_datasets(args):
             mean=[x / 255.0 for x in [109.9, 109.7, 113.8]],
             std=[x / 255.0 for x in [50.1, 50.6, 50.8]],
         )
-    else:
+    else: #for cifar10/100 dataset
         normalize = transforms.Normalize(
             mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
             std=[x / 255.0 for x in [63.0, 62.1, 66.7]],

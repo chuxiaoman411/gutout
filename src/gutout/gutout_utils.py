@@ -7,6 +7,7 @@ from torch.autograd import Function
 from torchvision import models
 import matplotlib.pyplot as plt
 import os
+import sys
 from torchvision import transforms
 
 
@@ -291,7 +292,7 @@ def generate_gutout_mask(threshold, mask):
     return gutout_mask
 
 
-def generate_batch_gutout_mask(threshold, masks, filter_out="greater_than_thresh"):
+def generate_batch_gutout_mask(threshold, masks, filter_out="greater_than_thresh"): #used to be "greater_than_thresh"
     if filter_out == "greater_than_thresh":
         gutout_mask = (masks <= threshold).float()
     elif filter_out == "less_than_thresh":
@@ -333,7 +334,10 @@ def gutout_images(grad_cam, images, args, report_stats=False):
     print("shape of original", images[0,:,:,:].shape)
     print("shape of cam", cam.shape)
     print("shape of img after gutout", img_after_gutout[0,:,:,:].shape)
-    show_images([images[0,:,:,:], cam, img_after_gutout[0,:,:,:]])
+    show_images([images[0,:,:,:], cam, img_after_gutout[0,:,:,:]], stats=
+    (avg_num_masked_pixel,
+    avg_gradcam_values,
+    std_gradcam_values))
     if report_stats==True:
         return (
             img_after_gutout,
@@ -360,8 +364,8 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     #                         target_layer_names=["0"], use_cuda=args.use_cuda)
 
     normalize = transforms.Normalize(
-        mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
-        std=[x / 255.0 for x in [63.0, 62.1, 66.7]],
+        mean=[x for x in [125.3, 123.0, 113.9]], # got rid of x / "255.0"
+        std=[x for x in [63.0, 62.1, 66.7]], # got rid of x / "255.0"
     )
     images = []
     names = []
@@ -375,9 +379,10 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
             images.append(img)
 
     images = np.concatenate(images, 0)
+    print("image before normalize", images[0,:,:,:])
     images = torch.from_numpy(images).permute(0, 3, 1, 2)
-    images = normalize(images) #added back in
-
+    images = normalize(images)
+    print("image after normalize", images[0,:,:,:])
     # if args.use_cuda:
     #     img_after_gutout, avg_num_masked_pixel = gutout_images(grad_cam, images, args)
     #     img_after_gutout = img_after_gutout.cpu().numpy()
@@ -387,7 +392,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
         avg_num_masked_pixel,
         avg_gradcam_values,
         std_gradcam_values,
-        cam                     #newly added
+        cam #newly added
     ) = gutout_images(grad_cam, images, args, report_stats=True) #used to not include "report_stats=True"
     img_after_gutout = img_after_gutout.cpu().numpy()
 
@@ -434,21 +439,30 @@ def show_cam_on_image(img, mask):
     img = img.squeeze() #newly added
     print("shape of heatmap before np", heatmap.shape)
     #cam = heatmap + np.float32(img)
-    cam = heatmap + img.detach().numpy()
+    cam = heatmap #+ img.detach().numpy()
     print("shape of heatmap after np", heatmap.shape)
     cam = cam / np.max(cam)
     cam = np.uint8(255 * cam)
+    with np.printoptions(threshold=sys.maxsize):
+        print("cam", cam)
 
     return cam
 
-def show_images(images):
+def show_images(images, epoch=None, stats=None):
     n = len(images)
     f = plt.figure()
+    if epoch:
+        f.suptitle('epoch:' +str(epoch), fontsize=14, fontweight='bold')
     axes = []
     for i in range(n):
         ax = f.add_subplot(1, n, i + 1)
         axes.append(ax)
         plt.imshow(np.transpose(images[i], (1,2,0)))#used to be just "images[i]" as a parameter
+    if stats:
+        (avg_num_masked_pixel,avg_gradcam_values,std_gradcam_values) = stats
+        axes[0].text(28, 46, 'average number of masked pixel: '+str(avg_num_masked_pixel), fontsize=10)
+        axes[0].text(28, 52, 'average gradcam values: '+str(avg_gradcam_values.detach().numpy()), fontsize=10)
+        axes[0].text(28, 58, 'std gradcam values: '+str(std_gradcam_values.detach().numpy()), fontsize=10)
 
     axes[0].set_title("Original image")
     axes[1].set_title("Grad-cam on image")

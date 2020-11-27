@@ -142,9 +142,9 @@ def get_args():
     torch.manual_seed(args.seed)
 
     if args.smoke_test:
-        args.batch_size = 2
+        args.batch_size = 128 #2, 1
         args.epochs = 6
-        max_num_batches = 2
+        max_num_batches = 1 #2
 
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
