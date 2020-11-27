@@ -21,6 +21,7 @@ from src.training.training_utils import (
     get_model,
     create_experiment_dir,
     run_epoch,
+    test,
 )
 
 
