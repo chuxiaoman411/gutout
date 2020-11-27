@@ -313,15 +313,17 @@ def apply_batch_gutout_mask(images, masks, args):
 
 def gutout_images(grad_cam, images, args, report_stats=False):
     imgs_only_for_heatmaps = preprocess_image_for_heatmap(images[0,:,:,:]) #newly added
-    print("shape of imgs only for heatmaps", imgs_only_for_heatmaps.shape)
+    if args.print_output > 0:
+        print("shape of imgs only for heatmaps", imgs_only_for_heatmaps.shape)
     imgs_only_for_heatmaps = imgs_only_for_heatmaps.permute(0, 3, 1, 2) #newly added
     heatmap_masks = grad_cam(imgs_only_for_heatmaps) #newly added
     masks = grad_cam(images)
-    print("type of images", type(images))
-    print("size of images", images.size())
-    print("type of masks", type(masks))
-    print("size of masks", masks.size())
-    print("masks", masks)
+    if args.print_output > 0:
+        print("type of images", type(images))
+        print("size of images", images.size())
+        print("type of masks", type(masks))
+        print("size of masks", masks.size())
+        print("masks", masks)
     cam = show_cam_on_image(imgs_only_for_heatmaps, heatmap_masks) #newly added
     gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
     avg_num_masked_pixel = np.sum(gutout_masks.clone().cpu().detach().numpy() == 0) / gutout_masks.shape[0]
@@ -330,14 +332,15 @@ def gutout_images(grad_cam, images, args, report_stats=False):
     avg_gradcam_values = masks.mean()
     std_gradcam_values = masks.std()
 
-    print("image", images[0,:,:,:])
-    print("shape of original", images[0,:,:,:].shape)
-    print("shape of cam", cam.shape)
-    print("shape of img after gutout", img_after_gutout[0,:,:,:].shape)
-    show_images([images[0,:,:,:], cam, img_after_gutout[0,:,:,:]], stats=
-    (avg_num_masked_pixel,
-    avg_gradcam_values,
-    std_gradcam_values))
+    if args.print_output > 0:
+        print("image", images[0,:,:,:])
+        print("shape of original", images[0,:,:,:].shape)
+        print("shape of cam", cam.shape)
+        print("shape of img after gutout", img_after_gutout[0,:,:,:].shape)
+        show_images([images[0,:,:,:], cam, img_after_gutout[0,:,:,:]], stats=
+        (avg_num_masked_pixel,
+        avg_gradcam_values,
+        std_gradcam_values))
     if report_stats==True:
         return (
             img_after_gutout,
@@ -369,7 +372,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     )
     images = []
     names = []
-    print("looking for pictures", os.listdir(path))
+    #print("looking for pictures", os.listdir(path))
     for f in os.listdir(path):
         if "png" in f or "jpeg" in f: #newly added: "or jpeg in f"
             names.append(f)
@@ -379,10 +382,13 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
             images.append(img)
 
     images = np.concatenate(images, 0)
-    print("image before normalize", images[0,:,:,:])
+
+    if args.print_output > 0:
+        print("image before normalize", images[0,:,:,:])
     images = torch.from_numpy(images).permute(0, 3, 1, 2)
     images = normalize(images)
-    print("image after normalize", images[0,:,:,:])
+    if args.print_output > 0:
+        print("image after normalize", images[0,:,:,:])
     # if args.use_cuda:
     #     img_after_gutout, avg_num_masked_pixel = gutout_images(grad_cam, images, args)
     #     img_after_gutout = img_after_gutout.cpu().numpy()
@@ -418,7 +424,7 @@ def preprocess_image_for_heatmap(img):
     for i in range(3):
         preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - means[i]
         preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / stds[i]
-    print("shape of preprocessed img", preprocessed_img.shape)
+    #print("shape of preprocessed img", preprocessed_img.shape)
     #preprocessed_img = \
     #    np.ascontiguousarray(np.transpose(preprocessed_img, (2, 0, 1)))
     #preprocessed_img = np.ascontiguousarray(preprocessed_img) #newly added
@@ -430,21 +436,21 @@ def preprocess_image_for_heatmap(img):
     return input
 
 def show_cam_on_image(img, mask):
-    print("shape of img", img.shape)
-    print("shape of mask", mask.shape)
+    #print("shape of img", img.shape)
+    #print("shape of mask", mask.shape)
     mask = mask.squeeze() #newly added
     heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
     heatmap = np.float32(heatmap) / 255
     heatmap = np.transpose(heatmap, (2,0,1)) #newly added
     img = img.squeeze() #newly added
-    print("shape of heatmap before np", heatmap.shape)
+    #print("shape of heatmap before np", heatmap.shape)
     #cam = heatmap + np.float32(img)
     cam = heatmap #+ img.detach().numpy()
-    print("shape of heatmap after np", heatmap.shape)
+    #print("shape of heatmap after np", heatmap.shape)
     cam = cam / np.max(cam)
     cam = np.uint8(255 * cam)
-    with np.printoptions(threshold=sys.maxsize):
-        print("cam", cam)
+    #with np.printoptions(threshold=sys.maxsize):
+        #print("cam", cam)
 
     return cam
 

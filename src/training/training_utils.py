@@ -135,6 +135,14 @@ def get_args():
         help="frequency of switching between the training model and the gutout model",
     )
 
+    # output related arguments
+    parser.add_argument(
+        "--print_output",
+        type=int,
+        default=0,
+        help="print out information related to the output"
+    )
+
     args = parser.parse_args()
     max_num_batches = None
     args.cuda = args.use_cuda
