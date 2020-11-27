@@ -5,3 +5,6 @@ cifar10_resnet18.csv
 __pycache__
 bash*
 checkpoints
+*experiment*
+**experiment**
+.DS_Store
