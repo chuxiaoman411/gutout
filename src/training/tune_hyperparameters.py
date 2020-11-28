@@ -95,7 +95,9 @@ if __name__ == "__main__":
     # grid search
     if args.decision == "deterministic":
         for threshold in threshold_range:
-            model = get_model(args, weights_path=args.model_a_path)
+            training_model = get_model(args, weights_path=args.model_a_path)
+            if args.use_cuda:
+                training_model = training_model.cuda()
             args.threshold = threshold
             print("Trying threshold ",args.threshold)
             for epoch in range(args.epochs):
@@ -137,7 +139,11 @@ if __name__ == "__main__":
     elif args.decision == "stochastic":
         for mu in mu_range:
             for sigma in sigma_range:
-                model = get_model(args, weights_path=args.model_a_path)
+                if mu == 0.6 and sigma == 0.05:
+                    continue
+                training_model = get_model(args, weights_path=args.model_a_path)
+                if args.use_cuda:
+                    training_model = training_model.cuda()
                 args.threshold = min(random.gauss(mu,sigma) ,1)
                 print("mu:",mu,"sigma:",sigma)
                 print("Trying threshold ", args.threshold)
