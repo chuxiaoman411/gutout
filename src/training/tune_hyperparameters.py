@@ -34,8 +34,8 @@ if __name__ == "__main__":
     train_loader, test_loader = get_dataloaders(args)
 
     # create model and optimizer
-    model = get_model(args, weights_path=args.model_a_path)
-    optimizer, scheduler = get_optimizer_and_schedular(model, args)
+    # model = get_model(args, weights_path=args.model_a_path)
+    
 
     # create experiment dir, csv logger and criterion
     experiment_dir, experiment_id = create_experiment_dir(args)
@@ -61,12 +61,12 @@ if __name__ == "__main__":
     criterion = nn.CrossEntropyLoss()
     # cast to gpu if needed
     if args.use_cuda:
-        model = model.cuda()
+        # model = model.cuda()
         criterion.cuda()
 
     # for a single model, the gutout model is the model that is being trained
-    gutout_model = model
-    training_model = model
+    # gutout_model = model
+    # training_model = model
     best_acc = -1
 
     
@@ -83,19 +83,21 @@ if __name__ == "__main__":
         sigma_range = range_parser(args.sigma_range)
         args.gutout == True
     
-    # create a gradcam
-    grad_cam = BatchGradCam(
-        model=gutout_model,
-        feature_module=getattr(gutout_model, args.feature_module),
-        target_layer_names=[args.target_layer_names],
-        use_cuda=args.use_cuda,
-    )
 
 
     # grid search
     if args.decision == "deterministic":
         for threshold in threshold_range:
+            if threshold == 0.4 or threshold == 0.6 or threshold == 0.8:
+                continue
             training_model = get_model(args, weights_path=args.model_a_path)
+            optimizer, scheduler = get_optimizer_and_schedular(training_model, args)
+            grad_cam = BatchGradCam(
+                model= training_model,
+                feature_module=getattr(training_model, args.feature_module),
+                target_layer_names=[args.target_layer_names],
+                use_cuda=args.use_cuda,
+            )
             if args.use_cuda:
                 training_model = training_model.cuda()
             args.threshold = threshold
@@ -142,6 +144,13 @@ if __name__ == "__main__":
                 if mu == 0.6 and sigma == 0.05:
                     continue
                 training_model = get_model(args, weights_path=args.model_a_path)
+                optimizer, scheduler = get_optimizer_and_schedular(training_model, args)
+                grad_cam = BatchGradCam(
+                    model=training_model,
+                    feature_module=getattr(training_model, args.feature_module),
+                    target_layer_names=[args.target_layer_names],
+                    use_cuda=args.use_cuda,
+                )
                 if args.use_cuda:
                     training_model = training_model.cuda()
                 args.threshold = min(random.gauss(mu,sigma) ,1)
