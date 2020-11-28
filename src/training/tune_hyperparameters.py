@@ -88,8 +88,6 @@ if __name__ == "__main__":
     # grid search
     if args.decision == "deterministic":
         for threshold in threshold_range:
-            if threshold == 0.4 or threshold == 0.6 or threshold == 0.8:
-                continue
             training_model = get_model(args, weights_path=args.model_a_path)
             optimizer, scheduler = get_optimizer_and_schedular(training_model, args)
             grad_cam = BatchGradCam(
@@ -136,13 +134,11 @@ if __name__ == "__main__":
                     "train_std_gradcam_values": str(round(float(mean_std_gradcam_values),3)),
                 }
                 scheduler.step()
-                if epoch % args.log_interval == 0:
+                if epoch == 0 or (epoch+1) % args.log_interval == 0:
                     csv_logger.writerow(row)
     elif args.decision == "stochastic":
         for mu in mu_range:
             for sigma in sigma_range:
-                if mu == 0.6 and sigma == 0.05:
-                    continue
                 training_model = get_model(args, weights_path=args.model_a_path)
                 optimizer, scheduler = get_optimizer_and_schedular(training_model, args)
                 grad_cam = BatchGradCam(
@@ -190,7 +186,7 @@ if __name__ == "__main__":
                         "train_std_gradcam_values": str(round(float(mean_std_gradcam_values),3)),
                     }
                     scheduler.step()
-                    if epoch % args.log_interval == 0:
+                    if epoch == 0 or (epoch+1) % args.log_interval == 0:
                         csv_logger.writerow(row)
 
                     
