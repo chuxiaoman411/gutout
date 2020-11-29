@@ -95,20 +95,22 @@ def get_args():
         "--img_size", type=int, default=32, help="the size of the input images"
     )
     parser.add_argument(
-        "--threshold", type=float, default=0.9, help="threshold for gutout"
+        "--threshold", type=float, default=0.8, help="threshold for gutout"
+        #for experiment 2, the default should be 0.85
     )
     parser.add_argument(
         "--random_threshold",
         action="store_true",
         default=False,
+        #for experiment 2, the default should be True
         help="whether to choose threshold randomly obeying Gaussian distribution",
     )
     parser.add_argument(
         "--mu", type=float, default=0.9, help="mu for Gaussian Distribution"
     )
     parser.add_argument(
-        "--sigma", type=float, default=0.1, help="sigma for Gaussian Distribution"
-    )
+        "--sigma", type=float, default=0.05, help="sigma for Gaussian Distribution"
+    )   #changed the default from 0.1 to 0.05 based on Shiqin's suggestion
 
     # gradcam args
     parser.add_argument(
@@ -150,9 +152,10 @@ def get_args():
     torch.manual_seed(args.seed)
 
     if args.smoke_test:
-        args.batch_size = 128 #2, 1
-        args.epochs = 6
-        max_num_batches = 1 #2
+        args.batch_size = 20 #2, 1, 128
+        args.epochs = 50 #6, 100
+        #max_num_batches means that many training batches, one test batch, and one sample batch
+        max_num_batches = 10 #2
 
     if args.cuda:
         torch.cuda.manual_seed(args.seed)

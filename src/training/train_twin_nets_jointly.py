@@ -35,6 +35,8 @@ if __name__ == "__main__":
     # create model and optimizer
     model_a = get_model(args, weights_path=args.model_a_path)
     model_b = get_model(args, weights_path=args.model_b_path)
+    print("model a.layer 1", model_a.layer1)
+    #model_a.load_state_dict(torch.load(args.model_path, map_location='cpu'))
     optimizer_a, scheduler_a = get_optimizer_and_schedular(model_a, args)
     optimizer_b, scheduler_b = get_optimizer_and_schedular(model_b, args)
 

@@ -7,3 +7,5 @@ bash*
 checkpoints
 *experiment*
 **experiment**
+*.pth
+*.pt

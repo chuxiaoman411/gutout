@@ -312,11 +312,15 @@ def apply_batch_gutout_mask(images, masks, args):
     return images * masks
 
 def gutout_images(grad_cam, images, args, report_stats=False):
-    imgs_only_for_heatmaps = preprocess_image_for_heatmap(images[0,:,:,:]) #newly added
+    img_only_for_heatmaps = preprocess_image_for_heatmap(images[0,:,:,:]) #newly added
     if args.print_output > 0:
-        print("shape of imgs only for heatmaps", imgs_only_for_heatmaps.shape)
-    imgs_only_for_heatmaps = imgs_only_for_heatmaps.permute(0, 3, 1, 2) #newly added
-    heatmap_masks = grad_cam(imgs_only_for_heatmaps) #newly added
+        print("shape of imgs only for heatmaps", img_only_for_heatmaps.shape)
+    img_only_for_heatmaps = img_only_for_heatmaps.permute(0, 3, 1, 2) #this is done to reverse the transposition occurred in preprocess_image_for_heatmap
+    #print("IMG_ONLY_FOR_HEATMAPS", img_only_for_heatmaps)
+    #print("IMAGE", images[0,:,:,:])
+    heatmap_masks = grad_cam(img_only_for_heatmaps) #newly added
+    #with np.printoptions(threshold=sys.maxsize):
+        #print("heatmap_masks[0,:,:]", heatmap_masks[0,:,:])
     masks = grad_cam(images)
     if args.print_output > 0:
         print("type of images", type(images))
@@ -324,7 +328,9 @@ def gutout_images(grad_cam, images, args, report_stats=False):
         print("type of masks", type(masks))
         print("size of masks", masks.size())
         print("masks", masks)
-    cam = show_cam_on_image(imgs_only_for_heatmaps, heatmap_masks) #newly added
+        with np.printoptions(threshold=sys.maxsize):
+            print("masks[0,:,:]", masks[0,:,:])
+    cam = show_cam_on_image(img_only_for_heatmaps, heatmap_masks) #newly added
     gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
     avg_num_masked_pixel = np.sum(gutout_masks.clone().cpu().detach().numpy() == 0) / gutout_masks.shape[0]
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
@@ -417,13 +423,13 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
 
 # this is preprocessing just for heatmap! temp use
 def preprocess_image_for_heatmap(img):
-    means = [0.485, 0.456, 0.406]
-    stds = [0.229, 0.224, 0.225]
+    #means = [0.485, 0.456, 0.406]
+    #stds = [0.229, 0.224, 0.225]
 
     preprocessed_img = img.numpy().copy()[:, :, :] #the last index used to be '::-1'
-    for i in range(3):
-        preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - means[i]
-        preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / stds[i]
+    #for i in range(3):
+        #preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - means[i]
+        #preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / stds[i]
     #print("shape of preprocessed img", preprocessed_img.shape)
     #preprocessed_img = \
     #    np.ascontiguousarray(np.transpose(preprocessed_img, (2, 0, 1)))
@@ -440,6 +446,7 @@ def show_cam_on_image(img, mask):
     #print("shape of mask", mask.shape)
     mask = mask.squeeze() #newly added
     heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
+    heatmap = heatmap[:,:,::-1]
     heatmap = np.float32(heatmap) / 255
     heatmap = np.transpose(heatmap, (2,0,1)) #newly added
     img = img.squeeze() #newly added
