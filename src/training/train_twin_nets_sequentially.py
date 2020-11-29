@@ -80,7 +80,7 @@ if __name__ == "__main__":
         test_acc = test(model_a, test_loader, args, max_num_batches)
 
         # write row
-        tqdm.write(model_flag + " test_acc: %.3f" % (test_acc))
+        tqdm.write("model a test_acc: %.3f" % (test_acc))
 
     for epoch in range(0 if args.model_a_path else args.epochs):
         # run the training loop on a single model
