@@ -89,7 +89,7 @@ def get_args():
 
     # GutOut arguments
     parser.add_argument(
-        "--gutout", action="store_true", default=True, help="apply gutout"
+        "--gutout", action="store_true", default=False, help="apply gutout"
     )
     parser.add_argument(
         "--img_size", type=int, default=32, help="the size of the input images"
@@ -313,6 +313,37 @@ def test(model, test_loader, args, max_num_batches=None):
 
         with torch.no_grad():
             pred = model(images)
+
+        pred = torch.max(pred.data, 1)[1]
+        total += labels.size(0)
+        correct += (pred == labels).sum().item()
+        i += 1
+
+        if max_num_batches is not None and i >= max_num_batches:
+            break
+    val_acc = correct / total
+    return val_acc
+
+
+def test_joint(model_a, model_b, test_loader, args, max_num_batches=None):
+    model_a.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
+    model_b.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
+
+    correct = 0.0
+    total = 0.0
+    i = 0
+    for images, labels in test_loader:
+        if args.use_cuda:
+            images = images.cuda()
+            labels = labels.cuda()
+
+        with torch.no_grad():
+            pred_a = model_a(images)
+            pred_b = model_b(images)
+
+            pred_a = torch.softmax(pred_a, 1)
+            pred_b = torch.softmax(pred_b, 1)
+            pred = pred_a + pred_b
 
         pred = torch.max(pred.data, 1)[1]
         total += labels.size(0)
