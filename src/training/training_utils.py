@@ -25,6 +25,7 @@ from src.models.resnet_cutout import ResNet18 as cutout_resnet18
 from src.models.resnet_torchvision import resnet18 as torchvision_resnet18
 from src.utils.data_utils import get_dataloaders
 
+# python src/training/train_twin_nets_jointly.py --use_cuda --smoke_test 0 --model cutout_resnet18 --epochs 200 --num_workers 4
 
 def get_args():
 
@@ -92,6 +93,9 @@ def get_args():
         "--gutout", action="store_true", default=False, help="apply gutout"
     )
     parser.add_argument(
+        "--no_gutout",  type=int, default=0, help="remove gutout"
+    )
+    parser.add_argument(
         "--img_size", type=int, default=32, help="the size of the input images"
     )
     parser.add_argument(
@@ -140,6 +144,9 @@ def get_args():
     args.cuda = args.use_cuda
     cudnn.benchmark = True  # Should make training go faster for large models
     torch.manual_seed(args.seed)
+
+    if args.no_gutout == 1:
+        args.gutout = False
 
     if args.smoke_test:
         args.batch_size = 2
