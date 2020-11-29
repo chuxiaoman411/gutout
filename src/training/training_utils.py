@@ -273,9 +273,10 @@ def train(
         optimizer.step()
 
         xentropy_loss_sum += xentropy_loss.item()
-        avg_num_masked_pixel_sum += avg_num_masked_pixel
-        avg_gradcam_values_sum += avg_gradcam_values
-        std_gradcam_values_sum += std_gradcam_values
+        if args.gutout:
+            avg_num_masked_pixel_sum += avg_num_masked_pixel
+            avg_gradcam_values_sum += avg_gradcam_values
+            std_gradcam_values_sum += std_gradcam_values
 
         # Calculate running average of accuracy
         pred = torch.max(pred.data, 1)[1]
@@ -284,6 +285,7 @@ def train(
 
         accuracy = correct / total
         mean_loss = xentropy_loss_sum / (i + 1)
+        
         mean_num_masked_pixel = avg_num_masked_pixel_sum / (i + 1)
         mean_gradcam_values = avg_gradcam_values_sum / (i + 1)
         mean_std_gradcam_values = std_gradcam_values_sum / (i + 1)
