@@ -152,7 +152,7 @@ def get_args():
     torch.manual_seed(args.seed)
 
     if args.smoke_test:
-        args.batch_size = 1 #2, 128, 20
+        args.batch_size = 2 #2, 128, 20
         args.epochs = 10 #6, 20, 50, 120
         #max_num_batches means that many training batches, one test batch, and one sample batch
         max_num_batches = 1 #2, 100, 10

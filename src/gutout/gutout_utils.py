@@ -312,13 +312,14 @@ def apply_batch_gutout_mask(images, masks, args):
     return images * masks
 
 def gutout_images(grad_cam, images, args, report_stats=False):
-    img_only_for_heatmaps = preprocess_image_for_heatmap(images[0,:,:,:]) #newly added
+    imgs_only_for_heatmaps = preprocess_images_for_heatmap(images) #newly added
     if args.print_output > 0:
-        print("shape of imgs only for heatmaps", img_only_for_heatmaps.shape)
-    img_only_for_heatmaps = img_only_for_heatmaps.permute(0, 3, 1, 2) #this is done to reverse the transposition occurred in preprocess_image_for_heatmap
+        print("shape of imgs only for heatmaps", imgs_only_for_heatmaps.shape)
+    imgs_only_for_heatmaps = imgs_only_for_heatmaps.permute(0, 3, 1, 2) #this is done to reverse the transposition occurred in preprocess_image_for_heatmap
     #print("IMG_ONLY_FOR_HEATMAPS", img_only_for_heatmaps)
     #print("IMAGE", images[0,:,:,:])
-    heatmap_masks = grad_cam(img_only_for_heatmaps) #newly added
+    heatmap_masks = grad_cam(imgs_only_for_heatmaps) #newly added
+    print("shape of heatmap_masks", heatmap_masks.shape)
     #with np.printoptions(threshold=sys.maxsize):
         #print("heatmap_masks[0,:,:]", heatmap_masks[0,:,:])
     masks = grad_cam(images)
@@ -330,7 +331,7 @@ def gutout_images(grad_cam, images, args, report_stats=False):
         print("masks", masks)
         with np.printoptions(threshold=sys.maxsize):
             print("masks[0,:,:]", masks[0,:,:])
-    cam = show_cam_on_image(img_only_for_heatmaps, heatmap_masks) #newly added
+    cam = show_cam_on_images(imgs_only_for_heatmaps, heatmap_masks) #newly added
     gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
     avg_num_masked_pixel = np.sum(gutout_masks.clone().cpu().detach().numpy() == 0) / gutout_masks.shape[0]
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
@@ -343,7 +344,7 @@ def gutout_images(grad_cam, images, args, report_stats=False):
         print("shape of original", images[0,:,:,:].shape)
         print("shape of cam", cam.shape)
         print("shape of img after gutout", img_after_gutout[0,:,:,:].shape)
-        show_images([images[0,:,:,:], cam, img_after_gutout[0,:,:,:]], stats=
+        show_images([images[0,:,:,:], cam[0,:,:,:], img_after_gutout[0,:,:,:]], stats=
         (avg_num_masked_pixel,
         avg_gradcam_values,
         std_gradcam_values))
@@ -415,6 +416,8 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
         "Average number of pixels per image get gutout during sampling:",
         avg_num_masked_pixel,
     )
+    cam = np.transpose(cam, (0,2,3,1)) #newly added----currently cam for the first image only; will rework to include the whole set
+    cam = cam[:,:,:,::-1]
     for i in range(len(names)):
         fn = "Epoch-" + str(epoch) + "-" + names[i]
         path = os.path.join(experiment_dir, fn)
@@ -427,30 +430,31 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
         cv2.imwrite(path, img)
         print("i: ", i)
         print("img numbers", img)
-    cam = np.transpose(cam, (1,2,0)) #newly added----currently cam for the first image only; will rework to include the whole set
-    path = os.path.join(experiment_dir, "cam" + str(epoch) + ".jpeg")
-    cv2.imwrite(path, cam)          #newly added
+        path = os.path.join(experiment_dir, "cam_" + str(i) + "epoch_" + str(epoch) + ".jpeg")
+        cv2.imwrite(path, cam[i, :, :, :]) #newly added
 
+"""
 # this is preprocessing just for heatmap! temp use
 def preprocess_image_for_heatmap(img):
-    #means = [0.485, 0.456, 0.406]
-    #stds = [0.229, 0.224, 0.225]
-
-    preprocessed_img = img.numpy().copy()[:, :, :] #the last index used to be '::-1'
-    #for i in range(3):
-        #preprocessed_img[:, :, i] = preprocessed_img[:, :, i] - means[i]
-        #preprocessed_img[:, :, i] = preprocessed_img[:, :, i] / stds[i]
-    #print("shape of preprocessed img", preprocessed_img.shape)
-    #preprocessed_img = \
-    #    np.ascontiguousarray(np.transpose(preprocessed_img, (2, 0, 1)))
-    #preprocessed_img = np.ascontiguousarray(preprocessed_img) #newly added
+    preprocessed_img = img.numpy().copy()
     preprocessed_img = \
         np.ascontiguousarray(np.transpose(preprocessed_img, (1, 2, 0)))
     preprocessed_img = torch.from_numpy(preprocessed_img)
     preprocessed_img.unsqueeze_(0)
     input = preprocessed_img.requires_grad_(True)
     return input
+"""
 
+# this is the plural version of the above
+def preprocess_images_for_heatmap(img):
+    preprocessed_imgs = img.numpy().copy()
+    preprocessed_imgs = \
+        np.ascontiguousarray(np.transpose(preprocessed_imgs, (0, 2, 3, 1)))
+    preprocessed_imgs = torch.from_numpy(preprocessed_imgs)
+    input = preprocessed_imgs.requires_grad_(True)
+    return input
+
+"""
 def show_cam_on_image(img, mask):
     #print("shape of img", img.shape)
     #print("shape of mask", mask.shape)
@@ -468,7 +472,33 @@ def show_cam_on_image(img, mask):
     cam = np.uint8(255 * cam)
     #with np.printoptions(threshold=sys.maxsize):
         #print("cam", cam)
+    return cam
+"""
 
+# this is the plural version of the function above
+def show_cam_on_images(imgs, masks):
+    #print("shape of img", img.shape)
+    #print("shape of mask", mask.shape)
+    #mask = mask.squeeze() #newly added
+    print("shape of masks before applying color map", masks.shape)
+    heatmaps = []
+    for i in range(masks.shape[0]):
+        mask_to_use = masks[i,:,:].squeeze(0)
+        heatmap = cv2.applyColorMap(np.uint8(255 * mask_to_use), cv2.COLORMAP_JET)
+        heatmaps.append(heatmap)
+    heatmaps = np.asarray(heatmaps)
+    print("shape of heatmaps after applying color map", heatmaps.shape)
+    heatmaps = heatmaps[:,:,:,::-1]
+    heatmaps = np.float32(heatmaps) / 255
+    heatmaps = np.transpose(heatmaps, (0,3,1,2)) #newly added
+    #print("shape of heatmap before np", heatmap.shape)
+    #cam = heatmap + np.float32(img)
+    cam = heatmaps #+ img.detach().numpy()
+    #print("shape of heatmap after np", heatmap.shape)
+    cam = cam / np.max(cam)
+    cam = np.uint8(255 * cam)
+    #with np.printoptions(threshold=sys.maxsize):
+        #print("cam", cam)
     return cam
 
 def show_images(images, epoch=None, stats=None):
