@@ -371,11 +371,13 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
 
     # grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
     #                         target_layer_names=["0"], use_cuda=args.use_cuda)
-
+    mean= np.asarray([x for x in [125.3, 123.0, 113.9]])
+    std= np.asarray([x for x in [63.0, 62.1, 66.7]])
     normalize = transforms.Normalize(
-        mean=[x for x in [125.3, 123.0, 113.9]], # got rid of x / "255.0"
-        std=[x for x in [63.0, 62.1, 66.7]], # got rid of x / "255.0"
+        mean=mean, # got rid of x / "255.0"
+        std=std # got rid of x / "255.0"
     )
+    denormalize = transforms.Normalize((-1 * mean / std), (1.0 / std))
     images = []
     names = []
     #print("looking for pictures", os.listdir(path))
@@ -391,6 +393,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
 
     if args.print_output > 0:
         print("image before normalize", images[0,:,:,:])
+    images = images[:,:,:,::-1].copy() #newly added
     images = torch.from_numpy(images).permute(0, 3, 1, 2)
     images = normalize(images)
     if args.print_output > 0:
@@ -415,8 +418,15 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     for i in range(len(names)):
         fn = "Epoch-" + str(epoch) + "-" + names[i]
         path = os.path.join(experiment_dir, fn)
-        img = np.transpose(img_after_gutout[i], (1, 2, 0))
+        img = img_after_gutout[i]
+        img = torch.from_numpy(img) #newly added
+        img = denormalize(img) #newly added
+        img = img.detach().numpy()
+        img = np.transpose(img, (1, 2, 0))
+        img = img[:,:,::-1] #newly added
         cv2.imwrite(path, img)
+        print("i: ", i)
+        print("img numbers", img)
     cam = np.transpose(cam, (1,2,0)) #newly added----currently cam for the first image only; will rework to include the whole set
     path = os.path.join(experiment_dir, "cam" + str(epoch) + ".jpeg")
     cv2.imwrite(path, cam)          #newly added
