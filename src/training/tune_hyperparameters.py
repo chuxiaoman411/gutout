@@ -31,8 +31,7 @@ if __name__ == "__main__":
     args, max_num_batches = get_args(hypterparameters_tune=True)
 
     # create train and test dataloaders
-    train_loader, test_loader = get_dataloaders(args)
-
+    train_loader, valid_loader, test_loader = get_dataloaders(args,need_validate=True,validate_proportion=0.8)
     # create model and optimizer
     # model = get_model(args, weights_path=args.model_a_path)
     
@@ -50,7 +49,7 @@ if __name__ == "__main__":
             "threshold",
             "epoch",
             "train_acc",
-            "test_acc",
+            "valid_acc",
             "train_loss",
             "train_num_masked_pixel",
             "train_mean_gradcam_values",
@@ -117,17 +116,17 @@ if __name__ == "__main__":
                     args,
                     max_num_batches,
                 )
-                test_acc = test(training_model, test_loader, args, max_num_batches)
+                valid_acc = test(training_model, valid_loader, args, max_num_batches)
                 tqdm.write( 
-                    " test_acc: %.3f" % (test_acc))
+                    " valid_acc: %.3f" % (valid_acc))
                 row = {
                     "decision": "deterministic",
                     "mu": "N/A",
                     "sigma": "N/A",
                     "threshold": round(args.threshold,3),
-                    "epoch": str(epoch),
+                    "epoch": str(epoch if epoch == 0 else epoch + 1),
                     "train_acc": str(round(train_accuracy,3)),
-                    "test_acc": str(round(test_acc,3)),
+                    "valid_acc": str(round(valid_acc,3)),
                     "train_loss": str(round(mean_loss,3)),
                     "train_num_masked_pixel": str(round(float(mean_num_masked_pixel),3)),
                     "train_mean_gradcam_values": str(round(float(mean_gradcam_values),3)),
@@ -149,10 +148,11 @@ if __name__ == "__main__":
                 )
                 if args.use_cuda:
                     training_model = training_model.cuda()
-                args.threshold = min(random.gauss(mu,sigma) ,1)
+                
                 print("mu:",mu,"sigma:",sigma)
                 print("Trying threshold ", args.threshold)
                 for epoch in range(args.epochs):
+                    args.threshold = min(random.gauss(mu, sigma), 1)
                     (
                         train_accuracy,
                         mean_loss,
@@ -169,17 +169,17 @@ if __name__ == "__main__":
                         args,
                         max_num_batches,
                     )
-                    test_acc = test(training_model, test_loader,
+                    valid_acc = test(training_model, valid_loader,
                                     args, max_num_batches)
-                    tqdm.write( " test_acc: %.3f" % (test_acc))
+                    tqdm.write( " valid_acc: %.3f" % (valid_acc))
                     row = {
                         "decision": "stochastic",
                         "mu": round(mu,3),
                         "sigma": round(sigma,3),
                         "threshold": round(args.threshold,3),
-                        "epoch": str(epoch),
+                        "epoch": str(epoch if epoch == 0 else epoch + 1),
                         "train_acc": str(round(train_accuracy,3)),
-                        "test_acc": str(round(test_acc,3)),
+                        "valid_acc": str(round(valid_acc,3)),
                         "train_loss": str(round(mean_loss,3)),
                         "train_num_masked_pixel": str(round(float(mean_num_masked_pixel),3)),
                         "train_mean_gradcam_values": str(round(float(mean_gradcam_values),3)),
