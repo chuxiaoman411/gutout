@@ -9,3 +9,4 @@ checkpoints
 **experiment**
 *.pth
 *.pt
+.DS_Store
