@@ -311,7 +311,7 @@ def apply_batch_gutout_mask(images, masks, args):
         masks = masks.cuda()
     return images * masks
 
-def gutout_images(grad_cam, images, args, report_stats=False):
+def gutout_images(grad_cam, images, args):
     imgs_only_for_heatmaps = preprocess_images_for_heatmap(images) #newly added
     if args.print_output > 0:
         print("shape of imgs only for heatmaps", imgs_only_for_heatmaps.shape)
@@ -337,6 +337,16 @@ def gutout_images(grad_cam, images, args, report_stats=False):
     print("shape of gutout pixels", gutout_pixels.shape)
     num_gutout_pixels_per_img = np.sum(gutout_pixels, axis=(1,2,3))
     print("num_gutout_pixels_per_img", num_gutout_pixels_per_img)
+    min_val = np.percentile(num_gutout_pixels_per_img, 0)
+    lower_quartile = np.percentile(num_gutout_pixels_per_img, 25)
+    median = np.percentile(num_gutout_pixels_per_img, 50)
+    upper_quartile = np.percentile(num_gutout_pixels_per_img, 75)
+    max_val = np.percentile(num_gutout_pixels_per_img, 100)
+    print("min val", min_val)
+    print("lower quartile", lower_quartile)
+    print("median", median)
+    print("upper quartile", upper_quartile)
+    print("max val", max_val)
     avg_num_masked_pixel = np.sum(gutout_pixels) / gutout_masks.shape[0]
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
 
@@ -352,13 +362,18 @@ def gutout_images(grad_cam, images, args, report_stats=False):
         (avg_num_masked_pixel,
         avg_gradcam_values,
         std_gradcam_values))
-    if report_stats==True:
+    if args.report_stats:
         return (
             img_after_gutout,
             avg_num_masked_pixel,
             avg_gradcam_values,
             std_gradcam_values,
-            cam
+            cam,
+            min_val,
+            lower_quartile,
+            median,
+            upper_quartile,
+            max_val
         )
     return (
         img_after_gutout,
@@ -407,14 +422,28 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     #     img_after_gutout, avg_num_masked_pixel = gutout_images(grad_cam, images, args)
     #     img_after_gutout = img_after_gutout.cpu().numpy()
     # else:
-    (
-        img_after_gutout,
-        avg_num_masked_pixel,
-        avg_gradcam_values,
-        std_gradcam_values,
-        cam #newly added
-    ) = gutout_images(grad_cam, images, args, report_stats=True) #used to not include "report_stats=True"
-    img_after_gutout = img_after_gutout.cpu().numpy()
+    if args.report_stats:
+        (
+            img_after_gutout,
+            avg_num_masked_pixel,
+            avg_gradcam_values,
+            std_gradcam_values,
+            cam, #newly added
+            min_val,
+            lower_quartile,
+            median,
+            upper_quartile,
+            max_val
+        ) = gutout_images(grad_cam, images, args) #used to not include "report_stats=True"
+        img_after_gutout = img_after_gutout.cpu().numpy()
+    else:
+        (
+            img_after_gutout,
+            avg_num_masked_pixel,
+            avg_gradcam_values,
+            std_gradcam_values,
+        ) = gutout_images(grad_cam, images, args) #used to not include "report_stats=True"
+        img_after_gutout = img_after_gutout.cpu().numpy()
 
     print(
         "Average number of pixels per image get gutout during sampling:",

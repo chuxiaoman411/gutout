@@ -44,7 +44,6 @@ if __name__ == "__main__":
     csv_logger_a = get_csv_logger(experiment_dir, experiment_id, args, model_flag="a")
     csv_logger_b = get_csv_logger(experiment_dir, experiment_id, args, model_flag="b")
     csv_logger_joint = get_csv_logger(experiment_dir, experiment_id, args, model_flag="joint")
-    csv_logger_stats = get_csv_logger(experiment_dir, experiment_id, args, model_flag="stats")
     criterion = nn.CrossEntropyLoss()
 
     # cast to gpu if needed
@@ -120,6 +119,7 @@ if __name__ == "__main__":
             experiment_id,
             args,
             model_flag=training_flag,
+            #report_stats=args.report_stats
         )
 
         if training_flag == "a":
