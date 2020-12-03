@@ -319,7 +319,7 @@ def gutout_images(grad_cam, images, args, report_stats=False):
     #print("IMG_ONLY_FOR_HEATMAPS", img_only_for_heatmaps)
     #print("IMAGE", images[0,:,:,:])
     heatmap_masks = grad_cam(imgs_only_for_heatmaps) #newly added
-    print("shape of heatmap_masks", heatmap_masks.shape)
+    #print("shape of heatmap_masks", heatmap_masks.shape)
     #with np.printoptions(threshold=sys.maxsize):
         #print("heatmap_masks[0,:,:]", heatmap_masks[0,:,:])
     masks = grad_cam(images)
@@ -333,7 +333,11 @@ def gutout_images(grad_cam, images, args, report_stats=False):
             print("masks[0,:,:]", masks[0,:,:])
     cam = show_cam_on_images(imgs_only_for_heatmaps, heatmap_masks) #newly added
     gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
-    avg_num_masked_pixel = np.sum(gutout_masks.clone().cpu().detach().numpy() == 0) / gutout_masks.shape[0]
+    gutout_pixels = (gutout_masks.clone().cpu().detach().numpy() == 0)
+    print("shape of gutout pixels", gutout_pixels.shape)
+    num_gutout_pixels_per_img = np.sum(gutout_pixels, axis=(1,2,3))
+    print("num_gutout_pixels_per_img", num_gutout_pixels_per_img)
+    avg_num_masked_pixel = np.sum(gutout_pixels) / gutout_masks.shape[0]
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
 
     avg_gradcam_values = masks.mean()
@@ -428,8 +432,8 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
         img = np.transpose(img, (1, 2, 0))
         img = img[:,:,::-1] #newly added
         cv2.imwrite(path, img)
-        print("i: ", i)
-        print("img numbers", img)
+        #print("i: ", i)
+        #print("img numbers", img)
         path = os.path.join(experiment_dir, "cam_" + str(i) + "epoch_" + str(epoch) + ".jpeg")
         cv2.imwrite(path, cam[i, :, :, :]) #newly added
 
@@ -480,14 +484,14 @@ def show_cam_on_images(imgs, masks):
     #print("shape of img", img.shape)
     #print("shape of mask", mask.shape)
     #mask = mask.squeeze() #newly added
-    print("shape of masks before applying color map", masks.shape)
+    #print("shape of masks before applying color map", masks.shape)
     heatmaps = []
     for i in range(masks.shape[0]):
         mask_to_use = masks[i,:,:].squeeze(0)
         heatmap = cv2.applyColorMap(np.uint8(255 * mask_to_use), cv2.COLORMAP_JET)
         heatmaps.append(heatmap)
     heatmaps = np.asarray(heatmaps)
-    print("shape of heatmaps after applying color map", heatmaps.shape)
+    #print("shape of heatmaps after applying color map", heatmaps.shape)
     heatmaps = heatmaps[:,:,:,::-1]
     heatmaps = np.float32(heatmaps) / 255
     heatmaps = np.transpose(heatmaps, (0,3,1,2)) #newly added
