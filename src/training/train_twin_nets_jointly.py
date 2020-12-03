@@ -21,6 +21,7 @@ from src.training.training_utils import (
     get_model,
     create_experiment_dir,
     run_epoch,
+    test_joint
 )
 
 
@@ -35,8 +36,6 @@ if __name__ == "__main__":
     # create model and optimizer
     model_a = get_model(args, weights_path=args.model_a_path)
     model_b = get_model(args, weights_path=args.model_b_path)
-    print("model a.layer 1", model_a.layer1)
-    #model_a.load_state_dict(torch.load(args.model_path, map_location='cpu'))
     optimizer_a, scheduler_a = get_optimizer_and_schedular(model_a, args)
     optimizer_b, scheduler_b = get_optimizer_and_schedular(model_b, args)
 
@@ -44,6 +43,7 @@ if __name__ == "__main__":
     experiment_dir, experiment_id = create_experiment_dir(args)
     csv_logger_a = get_csv_logger(experiment_dir, experiment_id, args, model_flag="a")
     csv_logger_b = get_csv_logger(experiment_dir, experiment_id, args, model_flag="b")
+    csv_logger_joint = get_csv_logger(experiment_dir, experiment_id, args, model_flag="joint")
     criterion = nn.CrossEntropyLoss()
 
     # cast to gpu if needed
@@ -125,3 +125,18 @@ if __name__ == "__main__":
             best_acc_a = copy.copy(best_acc)
         else:
             best_acc_b = copy.copy(best_acc)
+
+
+        # get test accuracy of ensamble
+        test_acc = test_joint(model_a, model_b, test_loader, args, max_num_batches)
+        tqdm.write("joint model" + " test_acc: %.3f" % (test_acc))
+        row = {
+            "epoch": str(epoch),
+            "train_acc": str(0),
+            "test_acc": str(test_acc),
+            "train_loss": str(0),
+            "train_num_masked_pixel": str(0),
+            "train_mean_gradcam_values": str(0),
+            "train_std_gradcam_values": str(0),
+        }
+        csv_logger_joint.writerow(row)
