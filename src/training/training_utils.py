@@ -242,12 +242,13 @@ def get_csv_logger(experiment_dir, experiment_id, args, model_flag="a"):
             "gutout_median_val_mean",
             "gutout_upper_quartile_mean",
             "gutout_max_val_mean", #mean of batch maximum number of gutout pixels
+            "gradamp_mean_mean",
+            "gradamp_std_mean",
             "gradamp_min_val_mean", #mean of batch minumum gradcam amplitude
             "gradamp_lower_quartile_mean",
             "gradamp_median_val_mean",
             "gradamp_upper_quartile_mean",
-            "gradamp_max_val_mean", #mean of batch maximum gradcam amplitude
-            "gradamp_std_mean"
+            "gradamp_max_val_mean" #mean of batch maximum gradcam amplitude
         ])
     csv_logger = CSVLogger(
         args=args,
@@ -303,7 +304,8 @@ def train(
                     images,
                     avg_num_masked_pixel,
                     avg_gradcam_values,
-                    std_gradcam_values
+                    std_gradcam_values,
+                    cam
                 ) = gutout_images(grad_cam, images, args=args)
 
         # to get rid of type tensor showing up in csv files
@@ -348,10 +350,12 @@ def train(
                 mean_gradcam_values="%.3f" % (mean_gradcam_values),
                 mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
 
-                mean_gutout_lower_quartile = "%.3f" % (advanced_stats_mean["gutout_lower_quartile"]),
-                mean_gutout_upper_quartile = "%.3f" % (advanced_stats_mean["gutout_upper_quartile"]),
-                mean_gradamp_lower_quartile = "%.3f" % (advanced_stats_mean["gradamp_lower_quartile"]),
-                mean_gradamp_upper_quartile = "%.3f" % (advanced_stats_mean["gradamp_upper_quartile"]),
+                # these are all MEAN of a partial epoch
+                gut_LQ = "%.2f" % (advanced_stats_mean["gutout_lower_quartile"]), # mean of the batch lower quartiles
+                gut_UQ = "%.2f" % (advanced_stats_mean["gutout_upper_quartile"]), # mean of the batch upper quartiles
+                gradamp = "%.2f" % (advanced_stats_mean["gradamp_mean"]),
+                #gradamp_LQ = "%.2f" % (advanced_stats_mean["gradamp_lower_quartile"]),
+                #gradamp_UQ = "%.2f" % (advanced_stats_mean["gradamp_upper_quartile"]),
             )
         else:
             progress_bar.set_postfix(

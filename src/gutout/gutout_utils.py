@@ -332,12 +332,13 @@ def gutout_images(grad_cam, images, args):
         "gutout_median_val": np.percentile(num_gutout_pixels_per_img, 50),
         "gutout_upper_quartile": np.percentile(num_gutout_pixels_per_img, 75),
         "gutout_max_val": np.percentile(num_gutout_pixels_per_img, 100),
+        "gradamp_mean": grad_amplitude.mean(),
+        "gradamp_std": grad_amplitude.std(),
         "gradamp_min_val": np.percentile(grad_amplitude, 0),
         "gradamp_lower_quartile": np.percentile(grad_amplitude, 25),
         "gradamp_median_val": np.percentile(grad_amplitude, 50),
         "gradamp_upper_quartile": np.percentile(grad_amplitude, 75),
         "gradamp_max_val": np.percentile(grad_amplitude, 100),
-        "gradamp_std": grad_amplitude.std()
     }
     avg_num_masked_pixel = np.sum(gutout_pixels) / gutout_masks.shape[0]
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
@@ -365,6 +366,7 @@ def gutout_images(grad_cam, images, args):
         avg_num_masked_pixel,
         avg_gradcam_values,
         std_gradcam_values,
+        cam
     )
 
 
@@ -418,6 +420,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
             avg_num_masked_pixel,
             avg_gradcam_values,
             std_gradcam_values,
+            cam
         ) = gutout_images(grad_cam, images, args)
         img_after_gutout = img_after_gutout.cpu().numpy()
 
