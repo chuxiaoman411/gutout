@@ -237,11 +237,17 @@ def get_csv_logger(experiment_dir, experiment_id, args, model_flag="a"):
     ]
     if args.report_stats:
         fieldnames.extend([
-            "mean_min_val", #mean of batch minumum number of gutout pixels
-            "mean_lower_quartile",
-            "mean_median",
-            "mean_upper_quartile",
-            "mean_max_val" #mean of batch maximum number of gutout pixels
+            "gutout_min_val_mean", #mean of batch minumum number of gutout pixels
+            "gutout_lower_quartile_mean",
+            "gutout_median_val_mean",
+            "gutout_upper_quartile_mean",
+            "gutout_max_val_mean", #mean of batch maximum number of gutout pixels
+            "gradamp_min_val_mean", #mean of batch minumum gradcam amplitude
+            "gradamp_lower_quartile_mean",
+            "gradamp_median_val_mean",
+            "gradamp_upper_quartile_mean",
+            "gradamp_max_val_mean", #mean of batch maximum gradcam amplitude
+            "gradamp_std_mean"
         ])
     csv_logger = CSVLogger(
         args=args,
@@ -300,6 +306,10 @@ def train(
                     std_gradcam_values
                 ) = gutout_images(grad_cam, images, args=args)
 
+        # to get rid of type tensor showing up in csv files
+        avg_gradcam_values = avg_gradcam_values.detach().numpy()
+        std_gradcam_values = std_gradcam_values.detach().numpy()
+
         optimizer.zero_grad()
         pred = model(images)
 
@@ -338,11 +348,10 @@ def train(
                 mean_gradcam_values="%.3f" % (mean_gradcam_values),
                 mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
 
-                #mean_min_val = "%.3f" % (mean_min_val),
-                mean_lower_quartile = "%.3f" % (advanced_stats_mean["lower_quartile"]),
-                #mean_median = "%.3f" % (mean_median),
-                mean_upper_quartile = "%.3f" % (advanced_stats_mean["upper_quartile"]),
-                #mean_max_val = "%.3f" % (mean_max_val),
+                mean_gutout_lower_quartile = "%.3f" % (advanced_stats_mean["gutout_lower_quartile"]),
+                mean_gutout_upper_quartile = "%.3f" % (advanced_stats_mean["gutout_upper_quartile"]),
+                mean_gradamp_lower_quartile = "%.3f" % (advanced_stats_mean["gradamp_lower_quartile"]),
+                mean_gradamp_upper_quartile = "%.3f" % (advanced_stats_mean["gradamp_upper_quartile"]),
             )
         else:
             progress_bar.set_postfix(
@@ -500,7 +509,7 @@ def run_epoch(
     }
     if args.report_stats:
         for key in advanced_stats_mean.keys():
-            row["mean_"+key] = str(advanced_stats_mean[key])
+            row[key+"_mean"] = str(advanced_stats_mean[key])
 
     # step in schedualer, logger, and save checkpoint if needed
     scheduler.step()

@@ -315,6 +315,9 @@ def gutout_images(grad_cam, images, args):
     imgs_only_for_heatmaps = imgs_only_for_heatmaps.permute(0, 3, 1, 2) #this is done to reverse the transposition occurred in preprocess_image_for_heatmap
     heatmap_masks = grad_cam(imgs_only_for_heatmaps)
     masks = grad_cam(images)
+    max_grad_pixel = np.amax(masks.detach().numpy(), axis=(1,2))
+    min_grad_pixel = np.amin(masks.detach().numpy(), axis=(1,2))
+    grad_amplitude = max_grad_pixel - min_grad_pixel
     if args.print_output > 0:
         print("masks", masks)
         #with np.printoptions(threshold=sys.maxsize):
@@ -324,11 +327,17 @@ def gutout_images(grad_cam, images, args):
     gutout_pixels = (gutout_masks.clone().cpu().detach().numpy() == 0)
     num_gutout_pixels_per_img = np.sum(gutout_pixels, axis=(1,2,3))
     advanced_stats = {
-        "min_val": np.percentile(num_gutout_pixels_per_img, 0),
-        "lower_quartile": np.percentile(num_gutout_pixels_per_img, 25),
-        "median": np.percentile(num_gutout_pixels_per_img, 50),
-        "upper_quartile": np.percentile(num_gutout_pixels_per_img, 75),
-        "max_val": np.percentile(num_gutout_pixels_per_img, 100)
+        "gutout_min_val": np.percentile(num_gutout_pixels_per_img, 0),
+        "gutout_lower_quartile": np.percentile(num_gutout_pixels_per_img, 25),
+        "gutout_median_val": np.percentile(num_gutout_pixels_per_img, 50),
+        "gutout_upper_quartile": np.percentile(num_gutout_pixels_per_img, 75),
+        "gutout_max_val": np.percentile(num_gutout_pixels_per_img, 100),
+        "gradamp_min_val": np.percentile(grad_amplitude, 0),
+        "gradamp_lower_quartile": np.percentile(grad_amplitude, 25),
+        "gradamp_median_val": np.percentile(grad_amplitude, 50),
+        "gradamp_upper_quartile": np.percentile(grad_amplitude, 75),
+        "gradamp_max_val": np.percentile(grad_amplitude, 100),
+        "gradamp_std": grad_amplitude.std()
     }
     avg_num_masked_pixel = np.sum(gutout_pixels) / gutout_masks.shape[0]
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
