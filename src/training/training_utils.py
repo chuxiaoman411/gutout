@@ -14,6 +14,7 @@ import sys
 import random
 import time
 from datetime import datetime
+from collections import defaultdict
 
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
@@ -225,39 +226,28 @@ def create_experiment_dir(args):
 
 def get_csv_logger(experiment_dir, experiment_id, args, model_flag="a"):
     csv_filename = os.path.join(experiment_dir, experiment_id + f"_{model_flag}.csv")
+    fieldnames = [
+        "epoch",
+        "train_acc",
+        "test_acc",
+        "train_loss",
+        "train_num_masked_pixel",
+        "train_mean_gradcam_values",
+        "train_std_gradcam_values"
+    ]
     if args.report_stats:
-        csv_logger = CSVLogger(
-            args=args,
-            fieldnames=[
-                "epoch",
-                "train_acc",
-                "test_acc",
-                "train_loss",
-                "train_num_masked_pixel",
-                "train_mean_gradcam_values",
-                "train_std_gradcam_values",
-                "mean_min_num_masked_pixels",
-                "mean_lower_quartile",
-                "mean_median",
-                "mean_upper_quartile",
-                "mean_max_num_masked_pixels"
-            ],
-            filename=csv_filename,
-        )
-    else:
-        csv_logger = CSVLogger(
-            args=args,
-            fieldnames=[
-                "epoch",
-                "train_acc",
-                "test_acc",
-                "train_loss",
-                "train_num_masked_pixel",
-                "train_mean_gradcam_values",
-                "train_std_gradcam_values",
-            ],
-            filename=csv_filename,
-        )
+        fieldnames.extend([
+            "mean_min_val", #mean of batch minumum number of gutout pixels
+            "mean_lower_quartile",
+            "mean_median",
+            "mean_upper_quartile",
+            "mean_max_val" #mean of batch maximum number of gutout pixels
+        ])
+    csv_logger = CSVLogger(
+        args=args,
+        fieldnames=fieldnames,
+        filename=csv_filename
+    )
     return csv_logger
 
 
@@ -279,11 +269,8 @@ def train(
     correct = 0.0
     total = 0
     if args.report_stats:
-        min_val_sum = 0.0
-        lower_quartile_sum = 0.0
-        median_sum = 0.0
-        upper_quartile_sum = 0.0
-        max_val_sum = 0.0
+        # defaultdict will set values to 0 before adding anything
+        advanced_stats_sum = defaultdict(float)
 
     progress_bar = tqdm(train_loader)
 
@@ -303,11 +290,7 @@ def train(
                     avg_gradcam_values,
                     std_gradcam_values,
                     cam,
-                    min_val,
-                    lower_quartile,
-                    median,
-                    upper_quartile,
-                    max_val
+                    advanced_stats
                 ) = gutout_images(grad_cam, images, args=args)
             else:
                 (
@@ -329,11 +312,8 @@ def train(
         avg_gradcam_values_sum += avg_gradcam_values
         std_gradcam_values_sum += std_gradcam_values
         if args.report_stats:
-            min_val_sum += min_val
-            lower_quartile_sum +=lower_quartile
-            median_sum += median
-            upper_quartile_sum += upper_quartile
-            max_val_sum += max_val
+            for key in advanced_stats.keys():
+                advanced_stats_sum[key] += advanced_stats[key]
 
         # Calculate running average of accuracy
         pred = torch.max(pred.data, 1)[1]
@@ -346,11 +326,9 @@ def train(
         mean_gradcam_values = avg_gradcam_values_sum / (i + 1)
         mean_std_gradcam_values = std_gradcam_values_sum / (i + 1)
         if args.report_stats:
-            mean_min_val = min_val_sum / (i + 1)
-            mean_lower_quartile = lower_quartile_sum / (i + 1)
-            mean_median = median_sum / (i + 1)
-            mean_upper_quartile = upper_quartile_sum / (i + 1)
-            mean_max_val = max_val_sum / (i + 1)
+            advanced_stats_mean = {}
+            for key in advanced_stats.keys():
+                advanced_stats_mean[key] = advanced_stats_sum[key] / (i + 1)
 
         if args.report_stats:
             progress_bar.set_postfix(
@@ -360,11 +338,11 @@ def train(
                 mean_gradcam_values="%.3f" % (mean_gradcam_values),
                 mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
 
-                mean_min_val = "%.3f" % (mean_min_val),
-                mean_lower_quartile = "%.3f" % (mean_lower_quartile),
-                mean_median = "%.3f" % (mean_median),
-                mean_upper_quartile = "%.3f" % (mean_upper_quartile),
-                mean_max_val = "%.3f" % (mean_max_val),
+                #mean_min_val = "%.3f" % (mean_min_val),
+                mean_lower_quartile = "%.3f" % (advanced_stats_mean["lower_quartile"]),
+                #mean_median = "%.3f" % (mean_median),
+                mean_upper_quartile = "%.3f" % (advanced_stats_mean["upper_quartile"]),
+                #mean_max_val = "%.3f" % (mean_max_val),
             )
         else:
             progress_bar.set_postfix(
@@ -385,11 +363,7 @@ def train(
             mean_num_masked_pixel,
             mean_gradcam_values,
             mean_std_gradcam_values,
-            mean_min_val,
-            mean_lower_quartile,
-            mean_median,
-            mean_upper_quartile,
-            mean_max_val
+            advanced_stats_mean
         )
     else:
         return (
@@ -480,11 +454,7 @@ def run_epoch(
             mean_num_masked_pixel,
             mean_gradcam_values,
             mean_std_gradcam_values,
-            mean_min_val,
-            mean_lower_quartile,
-            mean_median,
-            mean_upper_quartile,
-            mean_max_val
+            advanced_stats_mean
         ) = train(
             training_model,
             grad_cam,
@@ -519,31 +489,18 @@ def run_epoch(
     # write row
     tqdm.write(model_flag + " test_acc: %.3f" % (test_acc))
     # row = {'epoch': str(epoch), 'train_acc': str(train_accuracy), 'test_acc': str(test_acc)}
+    row = {
+        "epoch": str(epoch),
+        "train_acc": str(train_accuracy),
+        "test_acc": str(test_acc),
+        "train_loss": str(mean_loss),
+        "train_num_masked_pixel": str(mean_num_masked_pixel),
+        "train_mean_gradcam_values": str(mean_gradcam_values),
+        "train_std_gradcam_values": str(mean_std_gradcam_values),
+    }
     if args.report_stats:
-        row = {
-            "epoch": str(epoch),
-            "train_acc": str(train_accuracy),
-            "test_acc": str(test_acc),
-            "train_loss": str(mean_loss),
-            "train_num_masked_pixel": str(mean_num_masked_pixel),
-            "train_mean_gradcam_values": str(mean_gradcam_values),
-            "train_std_gradcam_values": str(mean_std_gradcam_values),
-            "mean_min_num_masked_pixels": str(mean_min_val),
-            "mean_lower_quartile": str(mean_lower_quartile),
-            "mean_median": str(mean_median),
-            "mean_upper_quartile": str(mean_upper_quartile),
-            "mean_max_num_masked_pixels": str(mean_max_val)
-        }
-    else:
-        row = {
-            "epoch": str(epoch),
-            "train_acc": str(train_accuracy),
-            "test_acc": str(test_acc),
-            "train_loss": str(mean_loss),
-            "train_num_masked_pixel": str(mean_num_masked_pixel),
-            "train_mean_gradcam_values": str(mean_gradcam_values),
-            "train_std_gradcam_values": str(mean_std_gradcam_values),
-        }
+        for key in advanced_stats_mean.keys():
+            row["mean_"+key] = str(advanced_stats_mean[key])
 
     # step in schedualer, logger, and save checkpoint if needed
     scheduler.step()

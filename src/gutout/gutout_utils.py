@@ -10,7 +10,6 @@ import os
 import sys
 from torchvision import transforms
 
-
 class FeatureExtractor:
     """ Class for extracting activations and
     registering gradients from targetted intermediate layers """
@@ -324,11 +323,13 @@ def gutout_images(grad_cam, images, args):
     gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
     gutout_pixels = (gutout_masks.clone().cpu().detach().numpy() == 0)
     num_gutout_pixels_per_img = np.sum(gutout_pixels, axis=(1,2,3))
-    min_val = np.percentile(num_gutout_pixels_per_img, 0)
-    lower_quartile = np.percentile(num_gutout_pixels_per_img, 25)
-    median = np.percentile(num_gutout_pixels_per_img, 50)
-    upper_quartile = np.percentile(num_gutout_pixels_per_img, 75)
-    max_val = np.percentile(num_gutout_pixels_per_img, 100)
+    advanced_stats = {
+        "min_val": np.percentile(num_gutout_pixels_per_img, 0),
+        "lower_quartile": np.percentile(num_gutout_pixels_per_img, 25),
+        "median": np.percentile(num_gutout_pixels_per_img, 50),
+        "upper_quartile": np.percentile(num_gutout_pixels_per_img, 75),
+        "max_val": np.percentile(num_gutout_pixels_per_img, 100)
+    }
     avg_num_masked_pixel = np.sum(gutout_pixels) / gutout_masks.shape[0]
     img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
 
@@ -348,11 +349,7 @@ def gutout_images(grad_cam, images, args):
             avg_gradcam_values,
             std_gradcam_values,
             cam,
-            min_val,
-            lower_quartile,
-            median,
-            upper_quartile,
-            max_val
+            advanced_stats
         )
     return (
         img_after_gutout,
@@ -403,11 +400,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
             avg_gradcam_values,
             std_gradcam_values,
             cam,
-            min_val,
-            lower_quartile,
-            median,
-            upper_quartile,
-            max_val
+            advanced_stats
         ) = gutout_images(grad_cam, images, args)
         img_after_gutout = img_after_gutout.cpu().numpy()
     else:
