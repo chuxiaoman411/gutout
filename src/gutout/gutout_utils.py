@@ -316,8 +316,8 @@ def gutout_images(grad_cam, images, args):
     imgs_only_for_heatmaps = imgs_only_for_heatmaps.permute(0, 3, 1, 2) #this is done to reverse the transposition occurred in preprocess_image_for_heatmap
     heatmap_masks = grad_cam(imgs_only_for_heatmaps)
     masks = grad_cam(images)
-    max_grad_pixel = np.amax(masks.detach().numpy(), axis=(1,2))
-    min_grad_pixel = np.amin(masks.detach().numpy(), axis=(1,2))
+    max_grad_pixel = np.amax(masks.cpu().detach().numpy(), axis=(1,2))
+    min_grad_pixel = np.amin(masks.cpu().detach().numpy(), axis=(1,2))
     grad_amplitude = max_grad_pixel - min_grad_pixel
     if args.print_output > 0:
         print("masks", masks)
@@ -425,7 +425,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
             cam,
             advanced_stats
         ) = gutout_images(grad_cam, images, args)
-        img_after_gutout = img_after_gutout.cpu().numpy()
+        img_after_gutout = img_after_gutout.cpu().detach().numpy()
     else:
         (
             img_after_gutout,
@@ -434,7 +434,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
             std_gradcam_values,
             cam
         ) = gutout_images(grad_cam, images, args)
-        img_after_gutout = img_after_gutout.cpu().numpy()
+        img_after_gutout = img_after_gutout.cpu().detach().numpy()
 
     print(
         "Average number of pixels per image get gutout during sampling:",
@@ -448,7 +448,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
         img = img_after_gutout[i]
         img = torch.from_numpy(img)
         img = denormalize(img)
-        img = img.detach().numpy()
+        img = img.cpu().detach().numpy()
         img = np.transpose(img, (1, 2, 0))
         img = img[:,:,::-1]
         cv2.imwrite(path, img)
@@ -526,8 +526,8 @@ def show_images(images, epoch=None, stats=None):
     if stats:
         (avg_num_masked_pixel,avg_gradcam_values,std_gradcam_values) = stats
         axes[0].text(28, 46, 'average number of masked pixel: '+str(avg_num_masked_pixel), fontsize=10)
-        axes[0].text(28, 52, 'average gradcam values: '+str(avg_gradcam_values.detach().numpy()), fontsize=10)
-        axes[0].text(28, 58, 'std gradcam values: '+str(std_gradcam_values.detach().numpy()), fontsize=10)
+        axes[0].text(28, 52, 'average gradcam values: '+str(avg_gradcam_values.cpu().detach().numpy()), fontsize=10)
+        axes[0].text(28, 58, 'std gradcam values: '+str(std_gradcam_values.cpu().detach().numpy()), fontsize=10)
 
     axes[0].set_title("Original image")
     axes[1].set_title("Grad-cam on image")
