@@ -191,10 +191,10 @@ def get_args(hypterparameters_tune=False):
     torch.manual_seed(args.seed)
 
     if args.smoke_test:
-        args.batch_size = 10 #2, 128, 20
+        args.batch_size = 2 #2, 128, 20
         args.epochs = 10 #6, 20, 50, 120
         #max_num_batches means that many training batches, one test batch, and one sample batch
-        max_num_batches = 1 #2, 100, 10
+        max_num_batches = 4 #2, 100, 10
 
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
@@ -311,7 +311,7 @@ def train(
         # defaultdict will set values to 0 before adding anything
         advanced_stats_sum = defaultdict(float)
 
-    progress_bar = tqdm(train_loader)
+    progress_bar = tqdm(train_loader, miniters=int(args.print_freq))
 
     for i, (images, labels) in enumerate(progress_bar):
         progress_bar.set_description("Epoch " + str(epoch))
@@ -375,6 +375,7 @@ def train(
                 advanced_stats_mean[key] = advanced_stats_sum[key] / (i + 1)
 
         if i % args.print_freq == 0:
+            # print(i)
             if args.report_stats:
                 progress_bar.set_postfix(
                     xentropy="%.3f" % (mean_loss),
