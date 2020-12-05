@@ -327,6 +327,7 @@ def gutout_images(grad_cam, images, args):
     gutout_pixels = (gutout_masks.clone().cpu().detach().numpy() == 0)
     num_gutout_pixels_per_img = np.sum(gutout_pixels, axis=(1,2,3))
     advanced_stats = {
+        "gutout_std": num_gutout_pixels_per_img.std(),
         "gutout_min_val": np.percentile(num_gutout_pixels_per_img, 0),
         "gutout_lower_quartile": np.percentile(num_gutout_pixels_per_img, 25),
         "gutout_median_val": np.percentile(num_gutout_pixels_per_img, 50),

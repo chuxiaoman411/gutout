@@ -190,7 +190,6 @@ def get_args(hypterparameters_tune=False):
         #max_num_batches means that many training batches, one test batch, and one sample batch
         max_num_batches = 1 #2, 100, 10
 
-
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
@@ -263,6 +262,7 @@ def get_csv_logger(experiment_dir, experiment_id, args, model_flag="a"):
     ]
     if args.report_stats:
         fieldnames.extend([
+            "gutout_std_mean",
             "gutout_min_val_mean", #mean of batch minumum number of gutout pixels
             "gutout_lower_quartile_mean",
             "gutout_median_val_mean",
@@ -280,7 +280,6 @@ def get_csv_logger(experiment_dir, experiment_id, args, model_flag="a"):
         args=args,
         fieldnames=fieldnames,
         filename=csv_filename
-
     )
     return csv_logger
 
@@ -305,7 +304,6 @@ def train(
     if args.report_stats:
         # defaultdict will set values to 0 before adding anything
         advanced_stats_sum = defaultdict(float)
-
 
     progress_bar = tqdm(train_loader)
 
@@ -340,7 +338,6 @@ def train(
         avg_gradcam_values = avg_gradcam_values.detach().numpy()
         std_gradcam_values = std_gradcam_values.detach().numpy()
 
-
         optimizer.zero_grad()
         pred = model(images)
 
@@ -355,7 +352,6 @@ def train(
         if args.report_stats:
             for key in advanced_stats.keys():
                 advanced_stats_sum[key] += advanced_stats[key]
-
 
         # Calculate running average of accuracy
         pred = torch.max(pred.data, 1)[1]
@@ -396,7 +392,6 @@ def train(
                 mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
             )
 
-
         if max_num_batches is not None and i >= max_num_batches:
             break
 
@@ -417,7 +412,6 @@ def train(
             mean_gradcam_values,
             mean_std_gradcam_values
         )
-
 
 
 def test(model, test_loader, args, max_num_batches=None):
@@ -472,7 +466,6 @@ def test_joint(model_a, model_b, test_loader, args, max_num_batches=None):
             break
     val_acc = correct / total
     return val_acc
-
 
 def run_epoch(
     training_model,
@@ -529,7 +522,6 @@ def run_epoch(
             max_num_batches,
         )
 
-
     # run test epoch
     test_acc = test(training_model, test_loader, args, max_num_batches)
 
@@ -548,7 +540,6 @@ def run_epoch(
     if args.report_stats:
         for key in advanced_stats_mean.keys():
             row[key+"_mean"] = str(advanced_stats_mean[key])
-
 
     # step in schedualer, logger, and save checkpoint if needed
     scheduler.step()
