@@ -14,6 +14,7 @@ def load_csv_into_dataframe(csv_filename):
             if len(row) > 2:
                 lines_for_temp_csv.append(",".join(row) + "\n")
 
+    # 
     with open("temp.csv", "w") as csvfile:
         for line in lines_for_temp_csv:
             csvfile.write(line)
