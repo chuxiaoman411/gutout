@@ -380,7 +380,8 @@ def fix_path(dir_path):
         return str(Path("../", dir_path))
     elif os.path.isdir(str(Path(*dir_path.split("/")[1:]))): # if need to remove a "../" prefix then remove it from the path
         return str(Path(*dir_path.split("/")[1:]))
-
+    elif  os.path.isdir(str(Path("gutout/", dir_path))): # if need to add another "gutout/" prefix then add it to the path
+        return str(Path("gutout/", dir_path))
 
 def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     if args.dataset == "cifar10":
