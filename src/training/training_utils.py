@@ -138,7 +138,6 @@ def get_args(hypterparameters_tune=False):
         help="frequency of switching between the training model and the gutout model",
     )
 
-<<<<<<< HEAD
 
     # Hyperparameter tuning arguments
     if hypterparameters_tune:
