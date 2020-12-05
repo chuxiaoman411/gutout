@@ -237,6 +237,7 @@ def get_csv_logger(experiment_dir, experiment_id, args, model_flag="a"):
     ]
     if args.report_stats:
         fieldnames.extend([
+            "gutout_std_mean",
             "gutout_min_val_mean", #mean of batch minumum number of gutout pixels
             "gutout_lower_quartile_mean",
             "gutout_median_val_mean",
