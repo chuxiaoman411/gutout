@@ -118,7 +118,7 @@ if __name__ == "__main__":
             experiment_dir,
             experiment_id,
             args,
-            model_flag=training_flag,
+            model_flag=training_flag
         )
 
         if training_flag == "a":
@@ -132,11 +132,11 @@ if __name__ == "__main__":
         tqdm.write("joint model" + " test_acc: %.3f" % (test_acc))
         row = {
             "epoch": str(epoch),
-            "train_acc": str(0),
+            "train_acc": str(0), # this is just a placeholder
             "test_acc": str(test_acc),
-            "train_loss": str(0),
-            "train_num_masked_pixel": str(0),
-            "train_mean_gradcam_values": str(0),
-            "train_std_gradcam_values": str(0),
+            "train_loss": str(0), # this is just a placeholder
+            "train_num_masked_pixel": str(0), # this is just a placeholder
+            "train_mean_gradcam_values": str(0), # this is just a placeholder
+            "train_std_gradcam_values": str(0), # this is just a placeholder
         }
         csv_logger_joint.writerow(row)

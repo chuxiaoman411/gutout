@@ -7,3 +7,9 @@ bash*
 checkpoints
 *experiment*
 **experiment**
+<<<<<<< HEAD
+=======
+*.pth
+*.pt
+>>>>>>> aad5d7ebb9d821a63b7c2f37254f611dbaa313da
+.DS_Store
