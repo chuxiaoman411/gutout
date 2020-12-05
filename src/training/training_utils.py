@@ -73,6 +73,12 @@ def get_args(hypterparameters_tune=False):
         default="",
         help="path to the Resnet model used to generate gutout mask",
     )
+    parser.add_argument(
+        "--print_freq",
+        type=int,
+        default=1,
+        help="frequency of printouts"
+    )
 
     parser.add_argument("--length", type=int, default=16, help="length of the holes")
     parser.add_argument(
@@ -368,29 +374,30 @@ def train(
             for key in advanced_stats.keys():
                 advanced_stats_mean[key] = advanced_stats_sum[key] / (i + 1)
 
-        if args.report_stats:
-            progress_bar.set_postfix(
-                xentropy="%.3f" % (mean_loss),
-                acc="%.3f" % (accuracy),
-                mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
-                mean_gradcam_values="%.3f" % (mean_gradcam_values),
-                mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
+        if i % args.print_freq == 0:
+            if args.report_stats:
+                progress_bar.set_postfix(
+                    xentropy="%.3f" % (mean_loss),
+                    acc="%.3f" % (accuracy),
+                    mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
+                    mean_gradcam_values="%.3f" % (mean_gradcam_values),
+                    mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
 
-                # these are all MEAN of a partial epoch
-                gut_LQ = "%.2f" % (advanced_stats_mean["gutout_lower_quartile"]), # mean of the batch lower quartiles
-                gut_UQ = "%.2f" % (advanced_stats_mean["gutout_upper_quartile"]), # mean of the batch upper quartiles
-                gradamp = "%.2f" % (advanced_stats_mean["gradamp_mean"]),
-                #gradamp_LQ = "%.2f" % (advanced_stats_mean["gradamp_lower_quartile"]),
-                #gradamp_UQ = "%.2f" % (advanced_stats_mean["gradamp_upper_quartile"]),
-            )
-        else:
-            progress_bar.set_postfix(
-                xentropy="%.3f" % (mean_loss),
-                acc="%.3f" % (accuracy),
-                mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
-                mean_gradcam_values="%.3f" % (mean_gradcam_values),
-                mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
-            )
+                    # these are all MEAN of a partial epoch
+                    gut_LQ = "%.2f" % (advanced_stats_mean["gutout_lower_quartile"]), # mean of the batch lower quartiles
+                    gut_UQ = "%.2f" % (advanced_stats_mean["gutout_upper_quartile"]), # mean of the batch upper quartiles
+                    gradamp = "%.2f" % (advanced_stats_mean["gradamp_mean"]),
+                    #gradamp_LQ = "%.2f" % (advanced_stats_mean["gradamp_lower_quartile"]),
+                    #gradamp_UQ = "%.2f" % (advanced_stats_mean["gradamp_upper_quartile"]),
+                )
+            else:
+                progress_bar.set_postfix(
+                    xentropy="%.3f" % (mean_loss),
+                    acc="%.3f" % (accuracy),
+                    mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
+                    mean_gradcam_values="%.3f" % (mean_gradcam_values),
+                    mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
+                )
 
         if max_num_batches is not None and i >= max_num_batches:
             break
