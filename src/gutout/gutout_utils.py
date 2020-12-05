@@ -385,9 +385,9 @@ def fix_path(dir_path):
 
 def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     if args.dataset == "cifar10":
-        path = fix_path("../sample_data/sample_imgs_cifar10")
+        path = fix_path("sample_data/sample_imgs_cifar10")
     elif args.dataset == "cifar100":
-        path = fix_path("../sample_data/sample_imgs_cifar100")
+        path = fix_path("sample_data/sample_imgs_cifar100")
 
     # grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
     #                         target_layer_names=["0"], use_cuda=args.use_cuda)
