@@ -335,8 +335,8 @@ def train(
                 ) = gutout_images(grad_cam, images, args=args)
 
         # to get rid of type tensor showing up in csv files
-        avg_gradcam_values = avg_gradcam_values.detach().numpy()
-        std_gradcam_values = std_gradcam_values.detach().numpy()
+        avg_gradcam_values = avg_gradcam_values.cpu().detach().numpy()
+        std_gradcam_values = std_gradcam_values.cpu().detach().numpy()
 
         optimizer.zero_grad()
         pred = model(images)
