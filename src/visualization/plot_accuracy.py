@@ -40,7 +40,7 @@ def generate_accuracy_plot(df, experiment_string, save_dir):
 
 if __name__ == "__main__":
     csv_filename = (
-        r"25-11-2020__20-57-30_experiment_cifar10_resnet18\cifar10_resnet18_a.csv"
+        r"./../training/jerryAB(0.001LR)_experiment_cifar10_cutout_resnet18/cifar10_cutout_resnet18_b.csv"
     )
     experiment_string = "model_b"
     save_dir = os.path.dirname(csv_filename)
