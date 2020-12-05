@@ -469,7 +469,7 @@ def preprocess_image_for_heatmap(img):
 
 # this is the plural version of the funciton commented out above
 def preprocess_images_for_heatmap(img):
-    preprocessed_imgs = img.numpy().copy()
+    preprocessed_imgs = img.cpu().detach().numpy().copy()
     preprocessed_imgs = \
         np.ascontiguousarray(np.transpose(preprocessed_imgs, (0, 2, 3, 1)))
     preprocessed_imgs = torch.from_numpy(preprocessed_imgs)
