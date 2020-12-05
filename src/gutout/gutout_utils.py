@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import sys
 from torchvision import transforms
+from pathlib import Path
 
 class FeatureExtractor:
     """ Class for extracting activations and
@@ -371,11 +372,21 @@ def gutout_images(grad_cam, images, args):
     )
 
 
+
+def fix_path(dir_path):
+    if os.path.isdir(dir_path): # if path exists return original
+        return dir_path
+    elif  os.path.isdir(str(Path("../", dir_path))): # if need to add another "../" prefix then add it to the path
+        return str(Path("../", dir_path))
+    elif os.path.isdir(str(Path(*dir_path.split("/")[1:]))): # if need to remove a "../" prefix then remove it from the path
+        return str(Path(*dir_path.split("/")[1:]))
+
+
 def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     if args.dataset == "cifar10":
-        path = "../sample_data/sample_imgs_cifar10"
+        path = fix_path("../sample_data/sample_imgs_cifar10")
     elif args.dataset == "cifar100":
-        path = "../sample_data/sample_imgs_cifar100"
+        path = fix_path("../sample_data/sample_imgs_cifar100")
 
     # grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
     #                         target_layer_names=["0"], use_cuda=args.use_cuda)
