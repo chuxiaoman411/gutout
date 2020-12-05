@@ -21,6 +21,7 @@ from src.training.training_utils import (
     get_model,
     create_experiment_dir,
     run_epoch,
+    test_joint
 )
 
 
@@ -42,6 +43,7 @@ if __name__ == "__main__":
     experiment_dir, experiment_id = create_experiment_dir(args)
     csv_logger_a = get_csv_logger(experiment_dir, experiment_id, args, model_flag="a")
     csv_logger_b = get_csv_logger(experiment_dir, experiment_id, args, model_flag="b")
+    csv_logger_joint = get_csv_logger(experiment_dir, experiment_id, args, model_flag="joint")
     criterion = nn.CrossEntropyLoss()
 
     # cast to gpu if needed
@@ -116,10 +118,25 @@ if __name__ == "__main__":
             experiment_dir,
             experiment_id,
             args,
-            model_flag=training_flag,
+            model_flag=training_flag
         )
 
         if training_flag == "a":
             best_acc_a = copy.copy(best_acc)
         else:
             best_acc_b = copy.copy(best_acc)
+
+
+        # get test accuracy of ensamble
+        test_acc = test_joint(model_a, model_b, test_loader, args, max_num_batches)
+        tqdm.write("joint model" + " test_acc: %.3f" % (test_acc))
+        row = {
+            "epoch": str(epoch),
+            "train_acc": str(0), # this is just a placeholder
+            "test_acc": str(test_acc),
+            "train_loss": str(0), # this is just a placeholder
+            "train_num_masked_pixel": str(0), # this is just a placeholder
+            "train_mean_gradcam_values": str(0), # this is just a placeholder
+            "train_std_gradcam_values": str(0), # this is just a placeholder
+        }
+        csv_logger_joint.writerow(row)

@@ -124,7 +124,8 @@ class BatchGradCam:
             self.model = model.cuda()
 
         self.extractor = ModelOutputs(
-            self.model, self.feature_module, target_layer_names)
+            self.model, self.feature_module, target_layer_names
+        )
 
     def forward(self, input):
         return self.model(input)
@@ -297,6 +298,50 @@ def apply_batch_gutout_mask(images, masks, args):
     return images * masks
 
 
+<<<<<<< HEAD
+def gutout_images(grad_cam, images, args, report_stats=False):
+    masks = grad_cam(images)
+    print("type of masks", type(masks))
+    print("size of masks", masks.size())
+    print("masks", masks)
+    input("pause")
+    gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
+<<<<<<< HEAD
+    avg_num_masked_pixel = np.sum(gutout_masks.numpy() == 0)/gutout_masks.shape[0]
+    print("type of gutout_masks", type(gutout_masks))
+    print("size of gutout_masks", gutout_masks.size())
+    print("gutout_masks", gutout_masks)
+    input("pause")
+=======
+    avg_num_masked_pixel = np.sum(gutout_masks.clone().cpu().detach().numpy() == 0) / gutout_masks.shape[0]
+>>>>>>> 014eda0ba770438d4971085aac54049d88d1e2ef
+    img_after_gutout = apply_batch_gutout_mask(images, gutout_masks, args)
+
+    avg_gradcam_values = masks.mean()
+    std_gradcam_values = masks.std()
+
+    return (
+        img_after_gutout,
+        avg_num_masked_pixel,
+        avg_gradcam_values,
+        std_gradcam_values,
+    )
+
+
+def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
+    if args.dataset == "cifar10":
+        path = "sample_imgs_cifar10"
+    elif args.dataset == "cifar10":
+        path = "sample_imgs_cifar100"
+
+    # grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
+    #                         target_layer_names=["0"], use_cuda=args.use_cuda)
+
+    normalize = transforms.Normalize(
+        mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
+        std=[x / 255.0 for x in [63.0, 62.1, 66.7]],
+    )
+=======
 def gutout_images(grad_cam, images, args):
     masks = grad_cam(images)
     gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
@@ -316,11 +361,51 @@ def get_gutout_samples(model, epoch, experiment_dir, args):
 
     normalize = transforms.Normalize(mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
                                      std=[x / 255.0 for x in [63.0, 62.1, 66.7]])
+>>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
     images = []
     names = []
     for f in os.listdir(path):
         if "png" in f:
             names.append(f)
+<<<<<<< HEAD
+<<<<<<< HEAD
+            img = cv2.imread(os.path.join(path,f), 1)
+            img = np.float32(cv2.resize(img, (224, 224))) #32, 32
+=======
+            img = cv2.imread(os.path.join(path, f), 1)
+            img = np.float32(cv2.resize(img, (32, 32)))
+>>>>>>> 014eda0ba770438d4971085aac54049d88d1e2ef
+            img = np.expand_dims(img, 0)
+            images.append(img)
+
+    images = np.concatenate(images, 0)
+    images = torch.from_numpy(images).permute(0, 3, 1, 2)
+    # images = normalize(images)
+
+    # if args.use_cuda:
+    #     img_after_gutout, avg_num_masked_pixel = gutout_images(grad_cam, images, args)
+    #     img_after_gutout = img_after_gutout.cpu().numpy()
+    # else:
+    (
+        img_after_gutout,
+        avg_num_masked_pixel,
+        avg_gradcam_values,
+        std_gradcam_values,
+    ) = gutout_images(grad_cam, images, args)
+    img_after_gutout = img_after_gutout.cpu().numpy()
+
+    print(
+        "Average number of pixels per image get gutout during sampling:",
+        avg_num_masked_pixel,
+    )
+    for i in range(len(names)):
+        fn = "Epoch-" + str(epoch) + "-" + names[i]
+        path = os.path.join(experiment_dir, fn)
+        img = np.transpose(img_after_gutout[i], (1, 2, 0))
+        cv2.imwrite(path, img)
+
+
+=======
             img = cv2.imread(os.path.join(path,f), 1)
             img = np.float32(cv2.resize(img, (32, 32)))
             img = np.expand_dims(img, 0)
@@ -352,6 +437,7 @@ def get_gutout_samples(model, epoch, experiment_dir, args):
         img = np.transpose(img_after_gutout[i], (1,2,0))
         cv2.imwrite(path, img)
 
+>>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
 def show_cam_on_image(img, mask):
     heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
     heatmap = np.float32(heatmap) / 255
@@ -361,6 +447,10 @@ def show_cam_on_image(img, mask):
 
     return cam
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
 def show_images(images):
     n = len(images)
     f = plt.figure()
