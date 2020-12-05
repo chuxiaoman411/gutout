@@ -501,7 +501,7 @@ def show_cam_on_image(img, mask):
 def show_cam_on_images(imgs, masks):
     heatmaps = []
     for i in range(masks.shape[0]):
-        mask_to_use = masks[i,:,:].squeeze(0)
+        mask_to_use = masks[i,:,:].squeeze(0).cpu().detach().numpy()
         heatmap = cv2.applyColorMap(np.uint8(255 * mask_to_use), cv2.COLORMAP_JET)
         heatmaps.append(heatmap)
     heatmaps = np.asarray(heatmaps)
