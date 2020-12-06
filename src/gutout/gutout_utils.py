@@ -174,7 +174,13 @@ class BatchGradCam:
         grad_weighted_cam = F.interpolate(grad_weighted_cam, input.shape[2:])
 
         # batch normalize heat map - to 0-1
-        grad_weighted_cam = grad_weighted_cam / torch.max(grad_weighted_cam)
+        per_sample_max_vals = torch.max(torch.flatten(grad_weighted_cam.clone(), start_dim=1), 1)[0] + 10**-7
+        per_sample_min_vals = torch.min(torch.flatten(grad_weighted_cam.clone(), start_dim=1), 1)[0] + 10**-7
+
+        per_sample_max_vals.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
+        grad_weighted_cam = grad_weighted_cam / per_sample_max_vals
+
+        # grad_weighted_cam = grad_weighted_cam / torch.max(grad_weighted_cam)
 
         # remove gradients from grad cam
         grad_weighted_cam = grad_weighted_cam.detach()

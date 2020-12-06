@@ -102,7 +102,7 @@ def get_args(hypterparameters_tune=False):
         "--img_size", type=int, default=32, help="the size of the input images"
     )
     parser.add_argument(
-        "--threshold", type=float, default=0.8, help="threshold for gutout"
+        "--threshold", type=float, default=0.6, help="threshold for gutout"
         #for experiment 2, the default should be 0.85
     )
     parser.add_argument(
@@ -191,7 +191,7 @@ def get_args(hypterparameters_tune=False):
     torch.manual_seed(args.seed)
 
     if args.smoke_test:
-        args.batch_size = 2 #2, 128, 20
+        args.batch_size = 3 #2, 128, 20
         args.epochs = 10 #6, 20, 50, 120
         #max_num_batches means that many training batches, one test batch, and one sample batch
         max_num_batches = 10 #2, 100, 10
