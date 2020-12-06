@@ -194,7 +194,7 @@ def get_args(hypterparameters_tune=False):
         args.batch_size = 2 #2, 128, 20
         args.epochs = 10 #6, 20, 50, 120
         #max_num_batches means that many training batches, one test batch, and one sample batch
-        max_num_batches = 4 #2, 100, 10
+        max_num_batches = 10 #2, 100, 10
 
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
@@ -311,7 +311,7 @@ def train(
         # defaultdict will set values to 0 before adding anything
         advanced_stats_sum = defaultdict(float)
 
-    progress_bar = tqdm(train_loader, miniters=int(args.print_freq))
+    progress_bar = tqdm(train_loader, disable=True)
 
     for i, (images, labels) in enumerate(progress_bar):
         progress_bar.set_description("Epoch " + str(epoch))
