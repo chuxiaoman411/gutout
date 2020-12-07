@@ -8,24 +8,31 @@ from visualization_utils import load_csv_into_dataframe, generate_accuracy_multi
 
 if __name__ == "__main__":
 
-    save_dir = r"results\cifar10\single_run"
+    dataset = "cifar10"
+
+    # choose files
+    if dataset == "cifar10":
+        save_dir = r"results\cifar10\single_run"
+        gutout_file_name = r"C:\Users\benjy\Desktop\DL_results\single_model_gutout_thresh_09\cifar10_cutout_resnet18_a.csv"
+        cutout_file_name = r"C:\Users\benjy\Desktop\DL_results\original_cutout\cifar10_resnet18.csv"
+    else:
+        save_dir = r"results\cifar100\single_run"
+        gutout_file_name = r"C:\Users\benjy\Desktop\DL_results\experiments\cifar100_old_gutout\cifar100_cutout_resnet18_a.csv"
+        cutout_file_name = r"C:\Users\benjy\Desktop\DL_results\original_cutout\cifar100_resnet18.csv"
+
 
     experiment_string_model = "gutout"
-    df_model = load_csv_into_dataframe(
-        r"C:\Users\benjy\Desktop\DL_results\single_model_gutout_thresh_09\cifar10_cutout_resnet18_a.csv"
-    )
+    df_model = load_csv_into_dataframe(gutout_file_name)
 
 
-    # generate_accuracy_plot(df_model, experiment_string_model, save_dir)
     generate_gradcam_amp_plot(df_model, experiment_string_model, save_dir)
     generate_pct_gutout_pixels_plot(df_model, experiment_string_model, save_dir)
     generate_pct_gutout_pixels_n_gradamp_plot(df_model, experiment_string_model, save_dir)
 
 
     experiment_string_baseline = "cutout"
-    df_baseline = load_csv_into_dataframe(
-        r"C:\Users\benjy\Desktop\DL_results\experiments\cifar10_cutout_single_w_old_gutout\cifar10_cutout_resnet18_a.csv"
-    )
+    df_baseline = load_csv_into_dataframe(cutout_file_name)
+
     for last_50_epochs in [True, False]:
         title = "cutout_vs_gutout_last_50_epochs" if last_50_epochs else "cutout_vs_gutout"
         generate_accuracy_multiple_plot(

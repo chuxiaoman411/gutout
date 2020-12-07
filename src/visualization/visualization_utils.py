@@ -45,24 +45,31 @@ def load_csv_into_dataframe(csv_filename):
 #     plt.close()
 
 
+# TODO make 
 
 def generate_accuracy_multiple_plot(list_of_dfs, list_of_experiment_string, title, save_dir, last_50_epochs=False):
     os.makedirs(save_dir, exist_ok=True)
 
+    cutout_color = "k"
     colors = ["b", "g", "r"]
     plot_names = []
     i = 0
     for df, name in zip(list_of_dfs, list_of_experiment_string):
+
+        color = cutout_color if name == "cutout" else colors[i]
+
         if last_50_epochs:
+
             if name == "joint":
-                plt.plot(df["epoch"][-100:], df["test_acc"][-100:], f"{colors[i]}")
+                plt.plot(df["epoch"][-100:], df["test_acc"][-100:], f"{color}")
             else:
-                plt.plot(df["epoch"][-50:], df["train_acc"][-50:], f"--{colors[i]}")
-                plt.plot(df["epoch"][-50:], df["test_acc"][-50:], f"{colors[i]}")
+                plt.plot(df["epoch"][-50:], df["train_acc"][-50:], f"--{color}")
+                plt.plot(df["epoch"][-50:], df["test_acc"][-50:], f"{color}")
         else:
+            
             if name != "joint":
-                plt.plot(df["epoch"], df["train_acc"], f"--{colors[i]}")
-            plt.plot(df["epoch"], df["test_acc"], f"{colors[i]}")
+                plt.plot(df["epoch"], df["train_acc"], f"--{color}")
+            plt.plot(df["epoch"], df["test_acc"], f"{color}")
 
 
         if name == "joint":
