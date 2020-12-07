@@ -44,7 +44,7 @@ def get_args():
     parser.add_argument(
         "--num_workers",
         type=int,
-        default=0,
+        default=4,
         help="the number of workers for fetching data using the dataloaders (default: 4",
     )
     parser.add_argument(
