@@ -307,6 +307,8 @@ def generate_batch_gutout_mask(args, masks, filter_out="greater_than_thresh"):
             threshold = np.random.normal(args.mu, args.sigma, masks.shape)
             threshold = np.clip(threshold,0,1)
             threshold = torch.from_numpy(threshold)
+            if args.use_cuda:
+                threshold = threshold.cuda()
     else:
         threshold = args.threshold
 
