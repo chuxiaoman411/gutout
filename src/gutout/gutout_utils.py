@@ -8,6 +8,7 @@ from torchvision import models
 import matplotlib.pyplot as plt
 import os
 import sys
+import random
 from torchvision import transforms
 from pathlib import Path
 
@@ -174,7 +175,13 @@ class BatchGradCam:
         grad_weighted_cam = F.interpolate(grad_weighted_cam, input.shape[2:])
 
         # batch normalize heat map - to 0-1
-        grad_weighted_cam = grad_weighted_cam / torch.max(grad_weighted_cam)
+        per_sample_max_vals = torch.max(torch.flatten(grad_weighted_cam.clone(), start_dim=1), 1)[0] + 10**-7
+        per_sample_min_vals = torch.min(torch.flatten(grad_weighted_cam.clone(), start_dim=1), 1)[0] + 10**-7
+
+        per_sample_max_vals.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
+        grad_weighted_cam = grad_weighted_cam / per_sample_max_vals
+
+        # grad_weighted_cam = grad_weighted_cam / torch.max(grad_weighted_cam)
 
         # remove gradients from grad cam
         grad_weighted_cam = grad_weighted_cam.detach()
@@ -292,7 +299,19 @@ def generate_gutout_mask(threshold, mask):
     return gutout_mask
 
 
-def generate_batch_gutout_mask(threshold, masks, filter_out="greater_than_thresh"):
+def generate_batch_gutout_mask(args, masks, filter_out="greater_than_thresh"):
+    if args.random_threshold:
+        if args.random_per_batch:
+            threshold = min(1,random.gauss(float(args.mu), float(args.sigma)))
+        elif args.random_per_image:
+            threshold = np.random.normal(args.mu, args.sigma, masks.shape)
+            threshold = np.clip(threshold,0,1)
+            threshold = torch.from_numpy(threshold)
+            if args.use_cuda:
+                threshold = threshold.cuda()
+    else:
+        threshold = args.threshold
+
     if filter_out == "greater_than_thresh":
         gutout_mask = (masks <= threshold).float()
     elif filter_out == "less_than_thresh":
@@ -324,7 +343,8 @@ def gutout_images(grad_cam, images, args):
         #with np.printoptions(threshold=sys.maxsize):
             #print("masks[0,:,:]", masks[0,:,:])
     cam = show_cam_on_images(imgs_only_for_heatmaps, heatmap_masks)
-    gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
+    #gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
+    gutout_masks = generate_batch_gutout_mask(args, masks)
     gutout_pixels = (gutout_masks.clone().cpu().detach().numpy() == 0)
     num_gutout_pixels_per_img = np.sum(gutout_pixels, axis=(1,2,3))
     advanced_stats = {

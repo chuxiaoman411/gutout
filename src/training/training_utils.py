@@ -102,7 +102,7 @@ def get_args(hypterparameters_tune=False):
         "--img_size", type=int, default=32, help="the size of the input images"
     )
     parser.add_argument(
-        "--threshold", type=float, default=0.8, help="threshold for gutout"
+        "--threshold", type=float, default=0.6, help="threshold for gutout"
         #for experiment 2, the default should be 0.85
     )
     parser.add_argument(
@@ -111,6 +111,16 @@ def get_args(hypterparameters_tune=False):
         default=False,
         #for experiment 2, the default should be True
         help="whether to choose threshold randomly obeying Gaussian distribution",
+    )
+    parser.add_argument(
+        "--random_per_batch",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--random_per_image",
+        action="store_true",
+        default=False,
     )
     parser.add_argument(
         "--mu", type=float, default=0.9, help="mu for Gaussian Distribution"
@@ -191,17 +201,17 @@ def get_args(hypterparameters_tune=False):
     torch.manual_seed(args.seed)
 
     if args.smoke_test:
-        args.batch_size = 2 #2, 128, 20
+        args.batch_size = 3 #2, 128, 20
         args.epochs = 10 #6, 20, 50, 120
         #max_num_batches means that many training batches, one test batch, and one sample batch
-        max_num_batches = 4 #2, 100, 10
+        max_num_batches = 10 #2, 100, 10
 
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
-    if args.random_threshold:
-        args.threshold = random.gauss(float(args.mu), float(args.sigma))
-        print("Randomly generated threshold ", args.threshold)
+    # if args.random_threshold:
+    #     args.threshold = random.gauss(float(args.mu), float(args.sigma))
+    #     print("Randomly generated threshold ", args.threshold)
 
     print(args)
 
@@ -311,7 +321,7 @@ def train(
         # defaultdict will set values to 0 before adding anything
         advanced_stats_sum = defaultdict(float)
 
-    progress_bar = tqdm(train_loader, miniters=int(args.print_freq))
+    progress_bar = tqdm(train_loader, disable=True)
 
     for i, (images, labels) in enumerate(progress_bar):
         progress_bar.set_description("Epoch " + str(epoch))
