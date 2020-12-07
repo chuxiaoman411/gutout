@@ -27,7 +27,7 @@ from src.models.resnet_torchvision import resnet18 as torchvision_resnet18
 from src.utils.data_utils import get_dataloaders
 
 
-def get_args():
+def get_args(hypterparameters_tune=False):
 
     model_options = ["torchvision_resnet18", "cutout_resnet18"]
     print(f"model options = {model_options}")
@@ -35,7 +35,7 @@ def get_args():
 
     parser = argparse.ArgumentParser(description="CNN")
     parser.add_argument("--dataset", "-d", default="cifar10", choices=dataset_options)
-    parser.add_argument("--model", "-a", default="torchvision_resnet18", choices=model_options)
+    parser.add_argument("--model", "-a", default="cutout_resnet18", choices=model_options)
     parser.add_argument(
         "--batch_size",
         type=int,
@@ -72,6 +72,12 @@ def get_args():
         "--model_b_path",
         default="",
         help="path to the Resnet model used to generate gutout mask",
+    )
+    parser.add_argument(
+        "--print_freq",
+        type=int,
+        default=1,
+        help="frequency of printouts"
     )
 
     parser.add_argument("--length", type=int, default=16, help="length of the holes")
@@ -138,6 +144,30 @@ def get_args():
         help="frequency of switching between the training model and the gutout model",
     )
 
+
+    # Hyperparameter tuning arguments
+    if hypterparameters_tune:
+        parser.add_argument(
+            "--decision", type=str, default="deterministic", choices=["deterministic", "stochastic"],
+            help="how to decide the gutout threshold"
+        )
+        parser.add_argument(
+            "--deterministic_range", type=str, default="[0.7, 0.9, 0.05]",
+            help="grid search range for deterministic threshold"
+        )
+        parser.add_argument(
+            "--mu_range", type=str, default="[0.7, 0.9, 0.1]",
+            help="grid search range for mu"
+        )
+        parser.add_argument(
+            "--sigma_range", type=str, default="[0.1, 0.2, 0.05]",
+            help="grid search range for sigma"
+        )
+        parser.add_argument(
+            "--log_interval", type=int, default=5,
+            help="interval for logging model performance give the current hypterparameters"
+        )
+   
     # output related arguments
     parser.add_argument(
         "--print_output",
@@ -161,10 +191,10 @@ def get_args():
     torch.manual_seed(args.seed)
 
     if args.smoke_test:
-        args.batch_size = 10 #2, 128, 20
+        args.batch_size = 2 #2, 128, 20
         args.epochs = 10 #6, 20, 50, 120
         #max_num_batches means that many training batches, one test batch, and one sample batch
-        max_num_batches = 1 #2, 100, 10
+        max_num_batches = 4 #2, 100, 10
 
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
@@ -201,7 +231,8 @@ def get_model(args, weights_path=""):
     elif args.model == "cutout_resnet18":
         model = cutout_resnet18(num_classes=num_classes)
     else:
-        raise ValueError("got invalid model type, allowed models are ['out_resnet18', 'cutout_resnet18']")
+        raise ValueError("got invalid model type, allowed models are ['torchvision_resnet18', 'cutout_resnet18']")
+
 
     if os.path.isfile(weights_path):
         model.load_state_dict(torch.load(weights_path, map_location="cpu"))
@@ -217,7 +248,7 @@ def create_experiment_dir(args):
     now = datetime.now()
     dt_string = now.strftime("%d-%m-%Y__%H-%M-%S")
 
-    experiment_dir = dt_string + "_experiment_" + experiment_id
+    experiment_dir = "experiments/" + dt_string + "_experiment_" + experiment_id
 
     os.makedirs(experiment_dir)
     os.makedirs(os.path.join(experiment_dir, "checkpoints/"), exist_ok=True)
@@ -280,7 +311,7 @@ def train(
         # defaultdict will set values to 0 before adding anything
         advanced_stats_sum = defaultdict(float)
 
-    progress_bar = tqdm(train_loader)
+    progress_bar = tqdm(train_loader, miniters=int(args.print_freq))
 
     for i, (images, labels) in enumerate(progress_bar):
         progress_bar.set_description("Epoch " + str(epoch))
@@ -310,8 +341,8 @@ def train(
                 ) = gutout_images(grad_cam, images, args=args)
 
         # to get rid of type tensor showing up in csv files
-        avg_gradcam_values = avg_gradcam_values.detach().numpy()
-        std_gradcam_values = std_gradcam_values.detach().numpy()
+        avg_gradcam_values = avg_gradcam_values.cpu().detach().numpy()
+        std_gradcam_values = std_gradcam_values.cpu().detach().numpy()
 
         optimizer.zero_grad()
         pred = model(images)
@@ -343,29 +374,31 @@ def train(
             for key in advanced_stats.keys():
                 advanced_stats_mean[key] = advanced_stats_sum[key] / (i + 1)
 
-        if args.report_stats:
-            progress_bar.set_postfix(
-                xentropy="%.3f" % (mean_loss),
-                acc="%.3f" % (accuracy),
-                mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
-                mean_gradcam_values="%.3f" % (mean_gradcam_values),
-                mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
+        if i % args.print_freq == 0:
+            # print(i)
+            if args.report_stats:
+                progress_bar.set_postfix(
+                    xentropy="%.3f" % (mean_loss),
+                    acc="%.3f" % (accuracy),
+                    mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
+                    mean_gradcam_values="%.3f" % (mean_gradcam_values),
+                    mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
 
-                # these are all MEAN of a partial epoch
-                gut_LQ = "%.2f" % (advanced_stats_mean["gutout_lower_quartile"]), # mean of the batch lower quartiles
-                gut_UQ = "%.2f" % (advanced_stats_mean["gutout_upper_quartile"]), # mean of the batch upper quartiles
-                gradamp = "%.2f" % (advanced_stats_mean["gradamp_mean"]),
-                #gradamp_LQ = "%.2f" % (advanced_stats_mean["gradamp_lower_quartile"]),
-                #gradamp_UQ = "%.2f" % (advanced_stats_mean["gradamp_upper_quartile"]),
-            )
-        else:
-            progress_bar.set_postfix(
-                xentropy="%.3f" % (mean_loss),
-                acc="%.3f" % (accuracy),
-                mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
-                mean_gradcam_values="%.3f" % (mean_gradcam_values),
-                mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
-            )
+                    # these are all MEAN of a partial epoch
+                    gut_LQ = "%.2f" % (advanced_stats_mean["gutout_lower_quartile"]), # mean of the batch lower quartiles
+                    gut_UQ = "%.2f" % (advanced_stats_mean["gutout_upper_quartile"]), # mean of the batch upper quartiles
+                    gradamp = "%.2f" % (advanced_stats_mean["gradamp_mean"]),
+                    #gradamp_LQ = "%.2f" % (advanced_stats_mean["gradamp_lower_quartile"]),
+                    #gradamp_UQ = "%.2f" % (advanced_stats_mean["gradamp_upper_quartile"]),
+                )
+            else:
+                progress_bar.set_postfix(
+                    xentropy="%.3f" % (mean_loss),
+                    acc="%.3f" % (accuracy),
+                    mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
+                    mean_gradcam_values="%.3f" % (mean_gradcam_values),
+                    mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
+                )
 
         if max_num_batches is not None and i >= max_num_batches:
             break

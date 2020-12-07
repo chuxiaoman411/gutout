@@ -1,0 +1,34 @@
+dataset,cifar10
+model,cutout_resnet18
+batch_size,128
+num_workers,0
+smoke_test,0
+learning_rate,0.1
+data_augmentation,False
+model_a_path,
+model_b_path,
+length,16
+use_cuda,True
+seed,0
+cutout,False
+n_holes,1
+gutout,True
+img_size,32
+threshold,0.9
+random_threshold,False
+mu,0.9
+sigma,0.1
+feature_module,layer1
+target_layer_names,0
+epochs,10
+switch_interval,2
+decision,deterministic
+deterministic_range,"[0.5,0.9,0.05]"
+mu_range,"[0.7, 0.9, 0.1]"
+sigma_range,"[0.1, 0.2, 0.05]"
+log_interval,5
+cuda,True
+""
+decision,mu,sigma,threshold,epoch,train_acc,test_acc,train_loss,train_num_masked_pixel,train_mean_gradcam_values,train_std_gradcam_values
+deterministic,N/A,N/A,0.5,0,0.336,0.414,1.878,6.199,0.037,0.076
+deterministic,N/A,N/A,0.5,5,0.824,0.719,0.504,2.172,0.043,0.072

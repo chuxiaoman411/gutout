@@ -2,28 +2,7 @@ import csv
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-
-
-def load_csv_into_dataframe(csv_filename):
-    lines_for_temp_csv = []
-    with open(csv_filename, newline="") as csvfile:
-        reader = csv.reader(csvfile)
-        for row in reader:
-            # print(', '.join(row))
-
-            if len(row) > 2:
-                lines_for_temp_csv.append(",".join(row) + "\n")
-
-    with open("temp.csv", "w") as csvfile:
-        for line in lines_for_temp_csv:
-            csvfile.write(line)
-
-    df = pd.read_csv("temp.csv")
-
-    os.remove("temp.csv")
-
-    return df
-
+from visualization_utils import load_csv_into_dataframe
 
 def generate_accuracy_plot(df, experiment_string, save_dir):
     os.makedirs(save_dir, exist_ok=True)
@@ -40,9 +19,11 @@ def generate_accuracy_plot(df, experiment_string, save_dir):
 
 if __name__ == "__main__":
     csv_filename = (
-        r"./../training/jerryAB(0.001LR)_experiment_cifar10_cutout_resnet18/cifar10_cutout_resnet18_b.csv"
+        # r"./../training/jerryAB(0.001LR)_experiment_cifar10_cutout_resnet18/cifar10_cutout_resnet18_b.csv"
+        r"05-12-2020__07-57-58_experiment_cifar10_cutout_resnet18\cifar10_cutout_resnet18_a.csv"
     )
-    experiment_string = "model_b"
+    
+    experiment_string = "model_a"
     save_dir = os.path.dirname(csv_filename)
 
     df = load_csv_into_dataframe(csv_filename)

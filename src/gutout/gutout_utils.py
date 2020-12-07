@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import sys
 from torchvision import transforms
+from pathlib import Path
 
 class FeatureExtractor:
     """ Class for extracting activations and
@@ -315,8 +316,8 @@ def gutout_images(grad_cam, images, args):
     imgs_only_for_heatmaps = imgs_only_for_heatmaps.permute(0, 3, 1, 2) #this is done to reverse the transposition occurred in preprocess_image_for_heatmap
     heatmap_masks = grad_cam(imgs_only_for_heatmaps)
     masks = grad_cam(images)
-    max_grad_pixel = np.amax(masks.detach().numpy(), axis=(1,2))
-    min_grad_pixel = np.amin(masks.detach().numpy(), axis=(1,2))
+    max_grad_pixel = np.amax(masks.cpu().detach().numpy(), axis=(1,2))
+    min_grad_pixel = np.amin(masks.cpu().detach().numpy(), axis=(1,2))
     grad_amplitude = max_grad_pixel - min_grad_pixel
     if args.print_output > 0:
         print("masks", masks)
@@ -371,11 +372,22 @@ def gutout_images(grad_cam, images, args):
     )
 
 
+
+def fix_path(dir_path):
+    if os.path.isdir(dir_path): # if path exists return original
+        return dir_path
+    elif  os.path.isdir(str(Path("../", dir_path))): # if need to add another "../" prefix then add it to the path
+        return str(Path("../", dir_path))
+    elif os.path.isdir(str(Path(*dir_path.split("/")[1:]))): # if need to remove a "../" prefix then remove it from the path
+        return str(Path(*dir_path.split("/")[1:]))
+    elif  os.path.isdir(str(Path("gutout/", dir_path))): # if need to add another "gutout/" prefix then add it to the path
+        return str(Path("gutout/", dir_path))
+
 def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     if args.dataset == "cifar10":
-        path = "../sample_data/sample_imgs_cifar10"
+        path = fix_path("sample_data/sample_imgs_cifar10")
     elif args.dataset == "cifar100":
-        path = "../sample_data/sample_imgs_cifar100"
+        path = fix_path("sample_data/sample_imgs_cifar100")
 
     # grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
     #                         target_layer_names=["0"], use_cuda=args.use_cuda)
@@ -414,7 +426,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
             cam,
             advanced_stats
         ) = gutout_images(grad_cam, images, args)
-        img_after_gutout = img_after_gutout.cpu().numpy()
+        img_after_gutout = img_after_gutout.cpu().detach().numpy()
     else:
         (
             img_after_gutout,
@@ -423,7 +435,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
             std_gradcam_values,
             cam
         ) = gutout_images(grad_cam, images, args)
-        img_after_gutout = img_after_gutout.cpu().numpy()
+        img_after_gutout = img_after_gutout.cpu().detach().numpy()
 
     print(
         "Average number of pixels per image get gutout during sampling:",
@@ -437,7 +449,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
         img = img_after_gutout[i]
         img = torch.from_numpy(img)
         img = denormalize(img)
-        img = img.detach().numpy()
+        img = img.cpu().detach().numpy()
         img = np.transpose(img, (1, 2, 0))
         img = img[:,:,::-1]
         cv2.imwrite(path, img)
@@ -458,7 +470,7 @@ def preprocess_image_for_heatmap(img):
 
 # this is the plural version of the funciton commented out above
 def preprocess_images_for_heatmap(img):
-    preprocessed_imgs = img.numpy().copy()
+    preprocessed_imgs = img.cpu().detach().numpy().copy()
     preprocessed_imgs = \
         np.ascontiguousarray(np.transpose(preprocessed_imgs, (0, 2, 3, 1)))
     preprocessed_imgs = torch.from_numpy(preprocessed_imgs)
@@ -490,7 +502,7 @@ def show_cam_on_image(img, mask):
 def show_cam_on_images(imgs, masks):
     heatmaps = []
     for i in range(masks.shape[0]):
-        mask_to_use = masks[i,:,:].squeeze(0)
+        mask_to_use = masks[i,:,:].squeeze(0).cpu().detach().numpy()
         heatmap = cv2.applyColorMap(np.uint8(255 * mask_to_use), cv2.COLORMAP_JET)
         heatmaps.append(heatmap)
     heatmaps = np.asarray(heatmaps)
@@ -515,8 +527,8 @@ def show_images(images, epoch=None, stats=None):
     if stats:
         (avg_num_masked_pixel,avg_gradcam_values,std_gradcam_values) = stats
         axes[0].text(28, 46, 'average number of masked pixel: '+str(avg_num_masked_pixel), fontsize=10)
-        axes[0].text(28, 52, 'average gradcam values: '+str(avg_gradcam_values.detach().numpy()), fontsize=10)
-        axes[0].text(28, 58, 'std gradcam values: '+str(std_gradcam_values.detach().numpy()), fontsize=10)
+        axes[0].text(28, 52, 'average gradcam values: '+str(avg_gradcam_values.cpu().detach().numpy()), fontsize=10)
+        axes[0].text(28, 58, 'std gradcam values: '+str(std_gradcam_values.cpu().detach().numpy()), fontsize=10)
 
     axes[0].set_title("Original image")
     axes[1].set_title("Grad-cam on image")
