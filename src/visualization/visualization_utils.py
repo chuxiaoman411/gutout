@@ -25,17 +25,49 @@ def load_csv_into_dataframe(csv_filename):
     return df
 
 
-def generate_accuracy_plot(df, experiment_string, save_dir):
+# def generate_accuracy_plot(df, experiment_string, save_dir, last_50_epochs=False):
+#     os.makedirs(save_dir, exist_ok=True)
+
+#     plt.plot(df["epoch"], df["train_acc"], "b--")
+#     plt.plot(df["epoch"], df["test_acc"], "b")
+#     if last_50_epochs:
+#         plt.plot(df["epoch"][-50:], df["train_acc"][-50:], "b--")
+#         plt.plot(df["epoch"][-50:], df["test_acc"][-50:], "b")
+#     else:
+#         plt.plot(df["epoch"], df["train_acc"], "b--")
+#         plt.plot(df["epoch"], df["test_acc"], "b")
+        
+#     plt.legend(["train accuracy", "test accuracy"])
+#     plt.xlabel("epochs")
+#     plt.ylabel("accuracy")
+#     plt.title(f"accuracy - {experiment_string}")
+#     plt.savefig(os.path.join(save_dir, f"accuracy_{experiment_string}.png"))
+#     plt.close()
+
+
+
+def generate_accuracy_multiple_plot(list_of_dfs, list_of_experiment_string, title, save_dir, last_50_epochs=False):
     os.makedirs(save_dir, exist_ok=True)
 
-    plt.plot(df["epoch"], df["train_acc"], "b--")
-    plt.plot(df["epoch"], df["test_acc"], "b")
+    colors = ["b", "g", "r"]
+    plot_names = []
+    i = 0
+    for df, name in zip(list_of_dfs, list_of_experiment_string):
+        if last_50_epochs:
+            plt.plot(df["epoch"][-50:], df["train_acc"][-50:], f"--{colors[i]}")
+            plt.plot(df["epoch"][-50:], df["test_acc"][-50:], f"{colors[i]}")
+        else:
+            plt.plot(df["epoch"], df["train_acc"], f"--{colors[i]}")
+            plt.plot(df["epoch"], df["test_acc"], f"{colors[i]}")
 
-    plt.legend(["train accuracy", "test accuracy"])
+        plot_names += [f"train accuracy {name}", f"test accuracy {name}"]
+        i += 1
+
+    plt.legend(plot_names)
     plt.xlabel("epochs")
     plt.ylabel("accuracy")
-    plt.title(f"accuracy - {experiment_string}")
-    plt.savefig(os.path.join(save_dir, f"accuracy_{experiment_string}.png"))
+    plt.title(f"accuracy - {title}")
+    plt.savefig(os.path.join(save_dir, f"comparitive_accuracy_{title}.png"))
     plt.close()
 
 
