@@ -7,3 +7,8 @@ bash*
 checkpoints
 *experiment*
 **experiment**
+*.pth
+*.pt
+.DS_Store
+*.DS_Store
+

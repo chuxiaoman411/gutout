@@ -22,6 +22,8 @@ from src.training.training_utils import (
     run_epoch,
 )
 
+# python src/training/train_single_model.py --smoke_test 0 --use_cuda --model torchvision_resnet18
+# python src/training/train_single_model.py --smoke_test 0 --use_cuda --model cutout_resnet18
 
 if __name__ == "__main__":
 
