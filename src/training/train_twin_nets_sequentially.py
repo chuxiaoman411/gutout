@@ -21,6 +21,7 @@ from src.training.training_utils import (
     get_model,
     create_experiment_dir,
     run_epoch,
+    test,
 )
 
 
@@ -74,7 +75,14 @@ if __name__ == "__main__":
     )
 
     ##### train model a #######
-    for epoch in range(args.epochs):
+    if args.model_a_path:
+        # run test epoch
+        test_acc = test(model_a, test_loader, args, max_num_batches)
+
+        # write row
+        tqdm.write("model a test_acc: %.3f" % (test_acc))
+
+    for epoch in range(0 if args.model_a_path else args.epochs):
         # run the training loop on a single model
         print(f"running epoch with model: {training_flag}")
         best_acc = run_epoch(

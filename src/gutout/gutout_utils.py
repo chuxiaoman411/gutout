@@ -8,7 +8,9 @@ from torchvision import models
 import matplotlib.pyplot as plt
 import os
 import sys
+import random
 from torchvision import transforms
+from pathlib import Path
 
 class FeatureExtractor:
     """ Class for extracting activations and
@@ -173,7 +175,13 @@ class BatchGradCam:
         grad_weighted_cam = F.interpolate(grad_weighted_cam, input.shape[2:])
 
         # batch normalize heat map - to 0-1
-        grad_weighted_cam = grad_weighted_cam / torch.max(grad_weighted_cam)
+        per_sample_max_vals = torch.max(torch.flatten(grad_weighted_cam.clone(), start_dim=1), 1)[0] + 10**-7
+        per_sample_min_vals = torch.min(torch.flatten(grad_weighted_cam.clone(), start_dim=1), 1)[0] + 10**-7
+
+        per_sample_max_vals.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
+        grad_weighted_cam = grad_weighted_cam / per_sample_max_vals
+
+        # grad_weighted_cam = grad_weighted_cam / torch.max(grad_weighted_cam)
 
         # remove gradients from grad cam
         grad_weighted_cam = grad_weighted_cam.detach()
@@ -291,7 +299,17 @@ def generate_gutout_mask(threshold, mask):
     return gutout_mask
 
 
-def generate_batch_gutout_mask(threshold, masks, filter_out="greater_than_thresh"):
+def generate_batch_gutout_mask(args, masks, filter_out="greater_than_thresh"):
+    if args.random_threshold:
+        if args.random_per_batch:
+            threshold = min(1,random.gauss(float(args.mu), float(args.sigma)))
+        elif args.random_per_image:
+            threshold = np.random.normal(args.mu, args.sigma, masks.shape)
+            threshold = np.clip(threshold,0,1)
+            threshold = torch.from_numpy(threshold)
+    else:
+        threshold = args.threshold
+
     if filter_out == "greater_than_thresh":
         gutout_mask = (masks <= threshold).float()
     elif filter_out == "less_than_thresh":
@@ -315,18 +333,20 @@ def gutout_images(grad_cam, images, args):
     imgs_only_for_heatmaps = imgs_only_for_heatmaps.permute(0, 3, 1, 2) #this is done to reverse the transposition occurred in preprocess_image_for_heatmap
     heatmap_masks = grad_cam(imgs_only_for_heatmaps)
     masks = grad_cam(images)
-    max_grad_pixel = np.amax(masks.detach().numpy(), axis=(1,2))
-    min_grad_pixel = np.amin(masks.detach().numpy(), axis=(1,2))
+    max_grad_pixel = np.amax(masks.cpu().detach().numpy(), axis=(1,2))
+    min_grad_pixel = np.amin(masks.cpu().detach().numpy(), axis=(1,2))
     grad_amplitude = max_grad_pixel - min_grad_pixel
     if args.print_output > 0:
         print("masks", masks)
         #with np.printoptions(threshold=sys.maxsize):
             #print("masks[0,:,:]", masks[0,:,:])
     cam = show_cam_on_images(imgs_only_for_heatmaps, heatmap_masks)
-    gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
+    #gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
+    gutout_masks = generate_batch_gutout_mask(args, masks)
     gutout_pixels = (gutout_masks.clone().cpu().detach().numpy() == 0)
     num_gutout_pixels_per_img = np.sum(gutout_pixels, axis=(1,2,3))
     advanced_stats = {
+        "gutout_std": num_gutout_pixels_per_img.std(),
         "gutout_min_val": np.percentile(num_gutout_pixels_per_img, 0),
         "gutout_lower_quartile": np.percentile(num_gutout_pixels_per_img, 25),
         "gutout_median_val": np.percentile(num_gutout_pixels_per_img, 50),
@@ -370,11 +390,22 @@ def gutout_images(grad_cam, images, args):
     )
 
 
+
+def fix_path(dir_path):
+    if os.path.isdir(dir_path): # if path exists return original
+        return dir_path
+    elif  os.path.isdir(str(Path("../", dir_path))): # if need to add another "../" prefix then add it to the path
+        return str(Path("../", dir_path))
+    elif os.path.isdir(str(Path(*dir_path.split("/")[1:]))): # if need to remove a "../" prefix then remove it from the path
+        return str(Path(*dir_path.split("/")[1:]))
+    elif  os.path.isdir(str(Path("gutout/", dir_path))): # if need to add another "gutout/" prefix then add it to the path
+        return str(Path("gutout/", dir_path))
+
 def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     if args.dataset == "cifar10":
-        path = "../sample_data/sample_imgs_cifar10"
+        path = fix_path("sample_data/sample_imgs_cifar10")
     elif args.dataset == "cifar100":
-        path = "../sample_data/sample_imgs_cifar100"
+        path = fix_path("sample_data/sample_imgs_cifar100")
 
     # grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
     #                         target_layer_names=["0"], use_cuda=args.use_cuda)
@@ -413,7 +444,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
             cam,
             advanced_stats
         ) = gutout_images(grad_cam, images, args)
-        img_after_gutout = img_after_gutout.cpu().numpy()
+        img_after_gutout = img_after_gutout.cpu().detach().numpy()
     else:
         (
             img_after_gutout,
@@ -422,7 +453,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
             std_gradcam_values,
             cam
         ) = gutout_images(grad_cam, images, args)
-        img_after_gutout = img_after_gutout.cpu().numpy()
+        img_after_gutout = img_after_gutout.cpu().detach().numpy()
 
     print(
         "Average number of pixels per image get gutout during sampling:",
@@ -436,7 +467,7 @@ def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
         img = img_after_gutout[i]
         img = torch.from_numpy(img)
         img = denormalize(img)
-        img = img.detach().numpy()
+        img = img.cpu().detach().numpy()
         img = np.transpose(img, (1, 2, 0))
         img = img[:,:,::-1]
         cv2.imwrite(path, img)
@@ -457,7 +488,7 @@ def preprocess_image_for_heatmap(img):
 
 # this is the plural version of the funciton commented out above
 def preprocess_images_for_heatmap(img):
-    preprocessed_imgs = img.numpy().copy()
+    preprocessed_imgs = img.cpu().detach().numpy().copy()
     preprocessed_imgs = \
         np.ascontiguousarray(np.transpose(preprocessed_imgs, (0, 2, 3, 1)))
     preprocessed_imgs = torch.from_numpy(preprocessed_imgs)
@@ -489,7 +520,7 @@ def show_cam_on_image(img, mask):
 def show_cam_on_images(imgs, masks):
     heatmaps = []
     for i in range(masks.shape[0]):
-        mask_to_use = masks[i,:,:].squeeze(0)
+        mask_to_use = masks[i,:,:].squeeze(0).cpu().detach().numpy()
         heatmap = cv2.applyColorMap(np.uint8(255 * mask_to_use), cv2.COLORMAP_JET)
         heatmaps.append(heatmap)
     heatmaps = np.asarray(heatmaps)
@@ -514,8 +545,8 @@ def show_images(images, epoch=None, stats=None):
     if stats:
         (avg_num_masked_pixel,avg_gradcam_values,std_gradcam_values) = stats
         axes[0].text(28, 46, 'average number of masked pixel: '+str(avg_num_masked_pixel), fontsize=10)
-        axes[0].text(28, 52, 'average gradcam values: '+str(avg_gradcam_values.detach().numpy()), fontsize=10)
-        axes[0].text(28, 58, 'std gradcam values: '+str(std_gradcam_values.detach().numpy()), fontsize=10)
+        axes[0].text(28, 52, 'average gradcam values: '+str(avg_gradcam_values.cpu().detach().numpy()), fontsize=10)
+        axes[0].text(28, 58, 'std gradcam values: '+str(std_gradcam_values.cpu().detach().numpy()), fontsize=10)
 
     axes[0].set_title("Original image")
     axes[1].set_title("Grad-cam on image")

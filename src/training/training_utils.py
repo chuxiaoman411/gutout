@@ -73,6 +73,12 @@ def get_args(hypterparameters_tune=False):
         default="",
         help="path to the Resnet model used to generate gutout mask",
     )
+    parser.add_argument(
+        "--print_freq",
+        type=int,
+        default=1,
+        help="frequency of printouts"
+    )
 
     parser.add_argument("--length", type=int, default=16, help="length of the holes")
     parser.add_argument(
@@ -96,7 +102,7 @@ def get_args(hypterparameters_tune=False):
         "--img_size", type=int, default=32, help="the size of the input images"
     )
     parser.add_argument(
-        "--threshold", type=float, default=0.8, help="threshold for gutout"
+        "--threshold", type=float, default=0.6, help="threshold for gutout"
         #for experiment 2, the default should be 0.85
     )
     parser.add_argument(
@@ -105,6 +111,16 @@ def get_args(hypterparameters_tune=False):
         default=False,
         #for experiment 2, the default should be True
         help="whether to choose threshold randomly obeying Gaussian distribution",
+    )
+    parser.add_argument(
+        "--random_per_batch",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--random_per_image",
+        action="store_true",
+        default=False,
     )
     parser.add_argument(
         "--mu", type=float, default=0.9, help="mu for Gaussian Distribution"
@@ -138,8 +154,6 @@ def get_args(hypterparameters_tune=False):
         help="frequency of switching between the training model and the gutout model",
     )
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 
     # Hyperparameter tuning arguments
     if hypterparameters_tune:
@@ -164,8 +178,6 @@ def get_args(hypterparameters_tune=False):
             help="interval for logging model performance give the current hypterparameters"
         )
    
-    
-=======
     # output related arguments
     parser.add_argument(
         "--print_output",
@@ -182,9 +194,6 @@ def get_args(hypterparameters_tune=False):
         help="print out stats related to the output"
     )
 
->>>>>>> aad5d7ebb9d821a63b7c2f37254f611dbaa313da
-=======
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
     args = parser.parse_args()
     max_num_batches = None
     args.cuda = args.use_cuda
@@ -192,23 +201,17 @@ def get_args(hypterparameters_tune=False):
     torch.manual_seed(args.seed)
 
     if args.smoke_test:
-<<<<<<< HEAD
-        args.batch_size = 10 #2, 128, 20
+        args.batch_size = 3 #2, 128, 20
         args.epochs = 10 #6, 20, 50, 120
         #max_num_batches means that many training batches, one test batch, and one sample batch
-        max_num_batches = 1 #2, 100, 10
-=======
-        args.batch_size = 2
-        args.epochs = 6
-        max_num_batches = 2
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
+        max_num_batches = 10 #2, 100, 10
 
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
-    if args.random_threshold:
-        args.threshold = random.gauss(float(args.mu), float(args.sigma))
-        print("Randomly generated threshold ", args.threshold)
+    # if args.random_threshold:
+    #     args.threshold = random.gauss(float(args.mu), float(args.sigma))
+    #     print("Randomly generated threshold ", args.threshold)
 
     print(args)
 
@@ -238,11 +241,8 @@ def get_model(args, weights_path=""):
     elif args.model == "cutout_resnet18":
         model = cutout_resnet18(num_classes=num_classes)
     else:
-<<<<<<< HEAD
         raise ValueError("got invalid model type, allowed models are ['torchvision_resnet18', 'cutout_resnet18']")
-=======
-        raise ValueError("got invalid model type, allowed models are ['out_resnet18', 'cutout_resnet18']")
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
+
 
     if os.path.isfile(weights_path):
         model.load_state_dict(torch.load(weights_path, map_location="cpu"))
@@ -258,7 +258,7 @@ def create_experiment_dir(args):
     now = datetime.now()
     dt_string = now.strftime("%d-%m-%Y__%H-%M-%S")
 
-    experiment_dir = dt_string + "_experiment_" + experiment_id
+    experiment_dir = "experiments/" + dt_string + "_experiment_" + experiment_id
 
     os.makedirs(experiment_dir)
     os.makedirs(os.path.join(experiment_dir, "checkpoints/"), exist_ok=True)
@@ -267,7 +267,6 @@ def create_experiment_dir(args):
 
 def get_csv_logger(experiment_dir, experiment_id, args, model_flag="a"):
     csv_filename = os.path.join(experiment_dir, experiment_id + f"_{model_flag}.csv")
-<<<<<<< HEAD
     fieldnames = [
         "epoch",
         "train_acc",
@@ -279,6 +278,7 @@ def get_csv_logger(experiment_dir, experiment_id, args, model_flag="a"):
     ]
     if args.report_stats:
         fieldnames.extend([
+            "gutout_std_mean",
             "gutout_min_val_mean", #mean of batch minumum number of gutout pixels
             "gutout_lower_quartile_mean",
             "gutout_median_val_mean",
@@ -296,20 +296,6 @@ def get_csv_logger(experiment_dir, experiment_id, args, model_flag="a"):
         args=args,
         fieldnames=fieldnames,
         filename=csv_filename
-=======
-    csv_logger = CSVLogger(
-        args=args,
-        fieldnames=[
-            "epoch",
-            "train_acc",
-            "test_acc",
-            "train_loss",
-            "train_num_masked_pixel",
-            "train_mean_gradcam_values",
-            "train_std_gradcam_values",
-        ],
-        filename=csv_filename,
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
     )
     return csv_logger
 
@@ -331,14 +317,11 @@ def train(
     std_gradcam_values_sum = 0.0
     correct = 0.0
     total = 0
-<<<<<<< HEAD
     if args.report_stats:
         # defaultdict will set values to 0 before adding anything
         advanced_stats_sum = defaultdict(float)
-=======
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
 
-    progress_bar = tqdm(train_loader)
+    progress_bar = tqdm(train_loader, disable=True)
 
     for i, (images, labels) in enumerate(progress_bar):
         progress_bar.set_description("Epoch " + str(epoch))
@@ -349,7 +332,6 @@ def train(
 
         # conduct gutout
         if args.gutout:
-<<<<<<< HEAD
             if args.report_stats:
                 (
                     images,
@@ -369,16 +351,8 @@ def train(
                 ) = gutout_images(grad_cam, images, args=args)
 
         # to get rid of type tensor showing up in csv files
-        avg_gradcam_values = avg_gradcam_values.detach().numpy()
-        std_gradcam_values = std_gradcam_values.detach().numpy()
-=======
-            (
-                images,
-                avg_num_masked_pixel,
-                avg_gradcam_values,
-                std_gradcam_values,
-            ) = gutout_images(grad_cam, images, args=args)
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
+        avg_gradcam_values = avg_gradcam_values.cpu().detach().numpy()
+        std_gradcam_values = std_gradcam_values.cpu().detach().numpy()
 
         optimizer.zero_grad()
         pred = model(images)
@@ -391,12 +365,9 @@ def train(
         avg_num_masked_pixel_sum += avg_num_masked_pixel
         avg_gradcam_values_sum += avg_gradcam_values
         std_gradcam_values_sum += std_gradcam_values
-<<<<<<< HEAD
         if args.report_stats:
             for key in advanced_stats.keys():
                 advanced_stats_sum[key] += advanced_stats[key]
-=======
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
 
         # Calculate running average of accuracy
         pred = torch.max(pred.data, 1)[1]
@@ -408,50 +379,40 @@ def train(
         mean_num_masked_pixel = avg_num_masked_pixel_sum / (i + 1)
         mean_gradcam_values = avg_gradcam_values_sum / (i + 1)
         mean_std_gradcam_values = std_gradcam_values_sum / (i + 1)
-<<<<<<< HEAD
         if args.report_stats:
             advanced_stats_mean = {}
             for key in advanced_stats.keys():
                 advanced_stats_mean[key] = advanced_stats_sum[key] / (i + 1)
 
-        if args.report_stats:
-            progress_bar.set_postfix(
-                xentropy="%.3f" % (mean_loss),
-                acc="%.3f" % (accuracy),
-                mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
-                mean_gradcam_values="%.3f" % (mean_gradcam_values),
-                mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
+        if i % args.print_freq == 0:
+            # print(i)
+            if args.report_stats:
+                progress_bar.set_postfix(
+                    xentropy="%.3f" % (mean_loss),
+                    acc="%.3f" % (accuracy),
+                    mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
+                    mean_gradcam_values="%.3f" % (mean_gradcam_values),
+                    mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
 
-                # these are all MEAN of a partial epoch
-                gut_LQ = "%.2f" % (advanced_stats_mean["gutout_lower_quartile"]), # mean of the batch lower quartiles
-                gut_UQ = "%.2f" % (advanced_stats_mean["gutout_upper_quartile"]), # mean of the batch upper quartiles
-                gradamp = "%.2f" % (advanced_stats_mean["gradamp_mean"]),
-                #gradamp_LQ = "%.2f" % (advanced_stats_mean["gradamp_lower_quartile"]),
-                #gradamp_UQ = "%.2f" % (advanced_stats_mean["gradamp_upper_quartile"]),
-            )
-        else:
-            progress_bar.set_postfix(
-                xentropy="%.3f" % (mean_loss),
-                acc="%.3f" % (accuracy),
-                mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
-                mean_gradcam_values="%.3f" % (mean_gradcam_values),
-                mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
-            )
-=======
-
-        progress_bar.set_postfix(
-            xentropy="%.3f" % (mean_loss),
-            acc="%.3f" % (accuracy),
-            mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
-            mean_gradcam_values="%.3f" % (mean_gradcam_values),
-            mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
-        )
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
+                    # these are all MEAN of a partial epoch
+                    gut_LQ = "%.2f" % (advanced_stats_mean["gutout_lower_quartile"]), # mean of the batch lower quartiles
+                    gut_UQ = "%.2f" % (advanced_stats_mean["gutout_upper_quartile"]), # mean of the batch upper quartiles
+                    gradamp = "%.2f" % (advanced_stats_mean["gradamp_mean"]),
+                    #gradamp_LQ = "%.2f" % (advanced_stats_mean["gradamp_lower_quartile"]),
+                    #gradamp_UQ = "%.2f" % (advanced_stats_mean["gradamp_upper_quartile"]),
+                )
+            else:
+                progress_bar.set_postfix(
+                    xentropy="%.3f" % (mean_loss),
+                    acc="%.3f" % (accuracy),
+                    mean_num_masked_pixel="%.3f" % (mean_num_masked_pixel),
+                    mean_gradcam_values="%.3f" % (mean_gradcam_values),
+                    mean_std_gradcam_values="%.3f" % (mean_std_gradcam_values),
+                )
 
         if max_num_batches is not None and i >= max_num_batches:
             break
 
-<<<<<<< HEAD
     if args.report_stats:
         return (
             accuracy,
@@ -469,15 +430,6 @@ def train(
             mean_gradcam_values,
             mean_std_gradcam_values
         )
-=======
-    return (
-        accuracy,
-        mean_loss,
-        mean_num_masked_pixel,
-        mean_gradcam_values,
-        mean_std_gradcam_values,
-    )
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
 
 
 def test(model, test_loader, args, max_num_batches=None):
@@ -503,7 +455,6 @@ def test(model, test_loader, args, max_num_batches=None):
     val_acc = correct / total
     return val_acc
 
-<<<<<<< HEAD
 def test_joint(model_a, model_b, test_loader, args, max_num_batches=None):
     model_a.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
     model_b.eval()  # Change model to 'eval' mode (BN uses moving mean/var).
@@ -533,8 +484,6 @@ def test_joint(model_a, model_b, test_loader, args, max_num_batches=None):
             break
     val_acc = correct / total
     return val_acc
-=======
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
 
 def run_epoch(
     training_model,
@@ -555,7 +504,6 @@ def run_epoch(
 ):
 
     # run train epoch
-<<<<<<< HEAD
     if args.report_stats:
         (
             train_accuracy,
@@ -591,24 +539,6 @@ def run_epoch(
             args,
             max_num_batches,
         )
-=======
-    (
-        train_accuracy,
-        mean_loss,
-        mean_num_masked_pixel,
-        mean_gradcam_values,
-        mean_std_gradcam_values,
-    ) = train(
-        training_model,
-        grad_cam,
-        criterion,
-        optimizer,
-        train_loader,
-        epoch,
-        args,
-        max_num_batches,
-    )
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
 
     # run test epoch
     test_acc = test(training_model, test_loader, args, max_num_batches)
@@ -625,12 +555,9 @@ def run_epoch(
         "train_mean_gradcam_values": str(mean_gradcam_values),
         "train_std_gradcam_values": str(mean_std_gradcam_values),
     }
-<<<<<<< HEAD
     if args.report_stats:
         for key in advanced_stats_mean.keys():
             row[key+"_mean"] = str(advanced_stats_mean[key])
-=======
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
 
     # step in schedualer, logger, and save checkpoint if needed
     scheduler.step()
@@ -649,7 +576,3 @@ def run_epoch(
     get_gutout_samples(training_model, grad_cam, epoch, experiment_dir, args)
 
     return best_acc
-<<<<<<< HEAD
-
-=======
->>>>>>> d86d55831b4d1e44335f202de4d82b9946ab7d67
