@@ -54,13 +54,22 @@ def generate_accuracy_multiple_plot(list_of_dfs, list_of_experiment_string, titl
     i = 0
     for df, name in zip(list_of_dfs, list_of_experiment_string):
         if last_50_epochs:
-            plt.plot(df["epoch"][-50:], df["train_acc"][-50:], f"--{colors[i]}")
-            plt.plot(df["epoch"][-50:], df["test_acc"][-50:], f"{colors[i]}")
+            if name == "joint":
+                plt.plot(df["epoch"][-100:], df["test_acc"][-100:], f"{colors[i]}")
+            else:
+                plt.plot(df["epoch"][-50:], df["train_acc"][-50:], f"--{colors[i]}")
+                plt.plot(df["epoch"][-50:], df["test_acc"][-50:], f"{colors[i]}")
         else:
-            plt.plot(df["epoch"], df["train_acc"], f"--{colors[i]}")
+            if name != "joint":
+                plt.plot(df["epoch"], df["train_acc"], f"--{colors[i]}")
             plt.plot(df["epoch"], df["test_acc"], f"{colors[i]}")
 
-        plot_names += [f"train accuracy {name}", f"test accuracy {name}"]
+
+        if name == "joint":
+            plot_names += [f"test accuracy {name}"]
+        else:
+            plot_names += [f"train accuracy {name}", f"test accuracy {name}"]
+
         i += 1
 
     plt.legend(plot_names)

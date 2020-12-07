@@ -10,9 +10,6 @@ if __name__ == "__main__":
 
     save_dir = r"results\cifar10\single_run"
 
-    # csv_filename = (
-    #     r"C:\Users\benjy\Desktop\DL_results\single_model_gutout_thresh_09\cifar10_cutout_resnet18_a.csv"
-    # )
     experiment_string_model = "gutout"
     df_model = load_csv_into_dataframe(
         r"C:\Users\benjy\Desktop\DL_results\single_model_gutout_thresh_09\cifar10_cutout_resnet18_a.csv"
@@ -25,10 +22,6 @@ if __name__ == "__main__":
     generate_pct_gutout_pixels_n_gradamp_plot(df_model, experiment_string_model, save_dir)
 
 
-    # baseline 
-    # csv_filename = (
-    #     r"C:\Users\benjy\Desktop\DL_results\experiments\cifar10_cutout_single_w_old_gutout\cifar10_cutout_resnet18_a.csv"
-    # )
     experiment_string_baseline = "cutout"
     df_baseline = load_csv_into_dataframe(
         r"C:\Users\benjy\Desktop\DL_results\experiments\cifar10_cutout_single_w_old_gutout\cifar10_cutout_resnet18_a.csv"
