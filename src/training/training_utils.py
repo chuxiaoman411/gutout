@@ -177,7 +177,7 @@ def get_args(hypterparameters_tune=False):
             "--log_interval", type=int, default=5,
             help="interval for logging model performance give the current hypterparameters"
         )
-   
+
     # output related arguments
     parser.add_argument(
         "--print_output",
@@ -201,8 +201,8 @@ def get_args(hypterparameters_tune=False):
     torch.manual_seed(args.seed)
 
     if args.smoke_test:
-        args.batch_size = 3 #2, 128, 20
-        args.epochs = 10 #6, 20, 50, 120
+        args.batch_size = 5 #2, 128, 20
+        args.epochs = 20 #6, 20, 50, 120
         #max_num_batches means that many training batches, one test batch, and one sample batch
         max_num_batches = 10 #2, 100, 10
 

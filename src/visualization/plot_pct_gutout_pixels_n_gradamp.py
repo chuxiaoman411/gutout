@@ -29,7 +29,7 @@ def generate_pct_gutout_pixels_n_gradamp_plot(df, experiment_string, save_dir):
 
 if __name__ == "__main__":
     csv_filename = (
-        r"./../training/test_experiment_cifar10_cutout_resnet18/cifar10_cutout_resnet18_b.csv"
+        r"./../training/experiments/recent_experiment_cifar10_cutout_resnet18/cifar10_cutout_resnet18_b.csv"
     )
     experiment_string = "model_b"
     save_dir = os.path.dirname(csv_filename)

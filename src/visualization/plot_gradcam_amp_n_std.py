@@ -19,8 +19,7 @@ def generate_gradcam_amp_plot(df, experiment_string, save_dir):
 if __name__ == "__main__":
     csv_filename = (
         # r"./../training/test_experiment_cifar10_cutout_resnet18/cifar10_cutout_resnet18_b.csv"
-        r"05-12-2020__07-57-58_experiment_cifar10_cutout_resnet18\cifar10_cutout_resnet18_a.csv"
-
+        r"./../training/experiments/recent_experiment_cifar10_cutout_resnet18/cifar10_cutout_resnet18_b.csv"
     )
     experiment_string = "model_a"
     save_dir = os.path.dirname(csv_filename)
