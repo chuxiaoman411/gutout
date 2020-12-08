@@ -134,10 +134,10 @@ def get_args(hypterparameters_tune=False):
         default=False,
     )
     parser.add_argument(
-        "--mu", type=float, default=0.9, help="mu for Gaussian Distribution"
+        "--mu", type=float, default=0.5, help="mu for Gaussian Distribution"
     )
     parser.add_argument(
-        "--sigma", type=float, default=0.05, help="sigma for Gaussian Distribution"
+        "--sigma", type=float, default=0.5, help="sigma for Gaussian Distribution"
     )   #changed the default from 0.1 to 0.05 based on Shiqin's suggestion
 
     # gradcam args
