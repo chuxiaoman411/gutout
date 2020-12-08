@@ -119,6 +119,21 @@ def get_args(hypterparameters_tune=False):
         help="whether to choose threshold randomly obeying Gaussian distribution",
     )
     parser.add_argument(
+        "--random_per_batch",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--random_per_image",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--random_per_pixel",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
         "--mu", type=float, default=0.9, help="mu for Gaussian Distribution"
     )
     parser.add_argument(
@@ -200,14 +215,14 @@ def get_args(hypterparameters_tune=False):
         args.batch_size = 3 #2, 128, 20
         args.epochs = 10 #6, 20, 50, 120
         #max_num_batches means that many training batches, one test batch, and one sample batch
-        max_num_batches = 10 #2, 100, 10
+        max_num_batches = 5 #2, 100, 10
 
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
-    if args.random_threshold:
-        args.threshold = random.gauss(float(args.mu), float(args.sigma))
-        print("Randomly generated threshold ", args.threshold)
+    # if args.random_threshold:
+    #     args.threshold = random.gauss(float(args.mu), float(args.sigma))
+    #     print("Randomly generated threshold ", args.threshold)
 
     print(args)
 

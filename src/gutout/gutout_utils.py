@@ -8,6 +8,7 @@ from torchvision import models
 import matplotlib.pyplot as plt
 import os
 import sys
+import random
 from torchvision import transforms
 from pathlib import Path
 
@@ -298,7 +299,28 @@ def generate_gutout_mask(threshold, mask):
     return gutout_mask
 
 
-def generate_batch_gutout_mask(threshold, masks, filter_out="greater_than_thresh"):
+def generate_batch_gutout_mask(args, masks, filter_out="greater_than_thresh"):
+    # random per batch
+    if args.random_per_batch:
+        threshold = min(1,random.gauss(float(args.mu), float(args.sigma)))
+        
+    # random per image
+    elif args.random_per_image:
+        threshold = torch.from_numpy(np.random.normal(args.mu, args.sigma, (masks.shape[0], 1, 1, 1)))
+        threshold = torch.clamp(threshold,0,1)
+        if args.use_cuda:
+            threshold = threshold.cuda()
+
+    # random per pixel
+    elif args.random_per_pixel:
+        threshold = torch.from_numpy(np.random.normal(args.mu, args.sigma, masks.shape))
+        threshold = torch.clamp(threshold,0,1)
+        if args.use_cuda:
+            threshold = threshold.cuda()
+            
+    else:
+        threshold = args.threshold
+
     if filter_out == "greater_than_thresh":
         gutout_mask = (masks <= threshold).float()
     elif filter_out == "less_than_thresh":
@@ -330,7 +352,7 @@ def gutout_images(grad_cam, images, args):
         #with np.printoptions(threshold=sys.maxsize):
             #print("masks[0,:,:]", masks[0,:,:])
     cam = show_cam_on_images(imgs_only_for_heatmaps, heatmap_masks)
-    gutout_masks = generate_batch_gutout_mask(args.threshold, masks, filter_out=args.filter_out)
+    gutout_masks = generate_batch_gutout_mask(args, masks, filter_out=args.filter_out)
     gutout_pixels = (gutout_masks.clone().cpu().detach().numpy() == 0)
     num_gutout_pixels_per_img = np.sum(gutout_pixels, axis=(1,2,3))
     advanced_stats = {
