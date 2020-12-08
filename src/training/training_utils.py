@@ -30,7 +30,9 @@ from src.utils.data_utils import get_dataloaders
 def get_args(hypterparameters_tune=False):
 
     model_options = ["torchvision_resnet18", "cutout_resnet18"]
+    filter_out_options = ["greater_than_thresh", "less_than_thresh"]
     print(f"model options = {model_options}")
+    print(f"filter out options = {filter_out_options}")
     dataset_options = ["cifar10", "cifar100", "svhn"]
 
     parser = argparse.ArgumentParser(description="CNN")
@@ -103,6 +105,10 @@ def get_args(hypterparameters_tune=False):
     )
     parser.add_argument(
         "--threshold", type=float, default=0.6, help="threshold for gutout"
+        #for experiment 2, the default should be 0.85
+    )
+    parser.add_argument(
+        "--filter_out", type=str, default="greater_than_thresh", help="direction of filtering - greater or less than the threshold"
         #for experiment 2, the default should be 0.85
     )
     parser.add_argument(
