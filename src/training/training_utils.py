@@ -327,7 +327,7 @@ def train(
         # defaultdict will set values to 0 before adding anything
         advanced_stats_sum = defaultdict(float)
 
-    progress_bar = tqdm(train_loader, disable=True)
+    progress_bar = tqdm(train_loader, miniters=int(args.print_freq))
 
     for i, (images, labels) in enumerate(progress_bar):
         progress_bar.set_description("Epoch " + str(epoch))

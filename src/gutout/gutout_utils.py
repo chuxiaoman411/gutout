@@ -343,7 +343,8 @@ def gutout_images(grad_cam, images, args):
         #with np.printoptions(threshold=sys.maxsize):
             #print("masks[0,:,:]", masks[0,:,:])
     cam = show_cam_on_images(imgs_only_for_heatmaps, heatmap_masks)
-    gutout_masks = generate_batch_gutout_mask(args.threshold, masks, filter_out=args.filter_out)
+    #gutout_masks = generate_batch_gutout_mask(args.threshold, masks, filter_out=args.filter_out)
+    gutout_masks = generate_batch_gutout_mask(args, masks, filter_out=args.filter_out)
     gutout_pixels = (gutout_masks.clone().cpu().detach().numpy() == 0)
     num_gutout_pixels_per_img = np.sum(gutout_pixels, axis=(1,2,3))
     advanced_stats = {
