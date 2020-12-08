@@ -129,10 +129,15 @@ def get_args(hypterparameters_tune=False):
         default=False,
     )
     parser.add_argument(
-        "--mu", type=float, default=0.9, help="mu for Gaussian Distribution"
+        "--random_per_pixel",
+        action="store_true",
+        default=False,
     )
     parser.add_argument(
-        "--sigma", type=float, default=0.05, help="sigma for Gaussian Distribution"
+        "--mu", type=float, default=0.5, help="mu for Gaussian Distribution"
+    )
+    parser.add_argument(
+        "--sigma", type=float, default=0.5, help="sigma for Gaussian Distribution"
     )   #changed the default from 0.1 to 0.05 based on Shiqin's suggestion
 
     # gradcam args
@@ -210,7 +215,7 @@ def get_args(hypterparameters_tune=False):
         args.batch_size = 5 #2, 128, 20
         args.epochs = 20 #6, 20, 50, 120
         #max_num_batches means that many training batches, one test batch, and one sample batch
-        max_num_batches = 10 #2, 100, 10
+        max_num_batches = 5 #2, 100, 10
 
     if args.cuda:
         torch.cuda.manual_seed(args.seed)

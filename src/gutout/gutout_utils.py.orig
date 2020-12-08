@@ -300,15 +300,24 @@ def generate_gutout_mask(threshold, mask):
 
 
 def generate_batch_gutout_mask(args, masks, filter_out="greater_than_thresh"):
-    if args.random_threshold:
-        if args.random_per_batch:
-            threshold = min(1,random.gauss(float(args.mu), float(args.sigma)))
-        elif args.random_per_image:
-            threshold = np.random.normal(args.mu, args.sigma, masks.shape)
-            threshold = np.clip(threshold,0,1)
-            threshold = torch.from_numpy(threshold)
-            if args.use_cuda:
-                threshold = threshold.cuda()
+    # random per batch
+    if args.random_per_batch:
+        threshold = min(1,random.gauss(float(args.mu), float(args.sigma)))
+        
+    # random per image
+    elif args.random_per_image:
+        threshold = torch.from_numpy(np.random.normal(args.mu, args.sigma, (masks.shape[0], 1, 1, 1)))
+        threshold = torch.clamp(threshold,0,1)
+        if args.use_cuda:
+            threshold = threshold.cuda()
+
+    # random per pixel
+    elif args.random_per_pixel:
+        threshold = torch.from_numpy(np.random.normal(args.mu, args.sigma, masks.shape))
+        threshold = torch.clamp(threshold,0,1)
+        if args.use_cuda:
+            threshold = threshold.cuda()
+            
     else:
         threshold = args.threshold
 
@@ -344,11 +353,10 @@ def gutout_images(grad_cam, images, args):
             #print("masks[0,:,:]", masks[0,:,:])
     cam = show_cam_on_images(imgs_only_for_heatmaps, heatmap_masks)
 <<<<<<< HEAD
-    #gutout_masks = generate_batch_gutout_mask(args.threshold, masks)
-    gutout_masks = generate_batch_gutout_mask(args, masks)
+    #gutout_masks = generate_batch_gutout_mask(args.threshold, masks, filter_out=args.filter_out)
 =======
-    gutout_masks = generate_batch_gutout_mask(args.threshold, masks, filter_out=args.filter_out)
->>>>>>> benjy_dev
+>>>>>>> benjy_dev_new
+    gutout_masks = generate_batch_gutout_mask(args, masks, filter_out=args.filter_out)
     gutout_pixels = (gutout_masks.clone().cpu().detach().numpy() == 0)
     num_gutout_pixels_per_img = np.sum(gutout_pixels, axis=(1,2,3))
     advanced_stats = {
