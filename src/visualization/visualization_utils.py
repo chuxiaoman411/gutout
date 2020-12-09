@@ -91,12 +91,13 @@ def generate_gradcam_amp_plot(df, experiment_string, save_dir, one_sided_error=F
     os.makedirs(save_dir, exist_ok=True)
 
     if one_sided_error:
-        plt.errorbar(df["epoch"], df["gradamp_mean_mean"], yerr=[np.zeros(len(df["gradamp_std_mean"])), df["gradamp_std_mean"]], fmt='-o', color="grey")
+        plt.errorbar(df["epoch"], df["gradamp_mean_mean"], yerr=[np.zeros(len(df["gradamp_std_mean"])), df["gradamp_std_mean"]], fmt='-o', color="grey", alpha=0.4)
     else:
-        plt.errorbar(df["epoch"], df["gradamp_mean_mean"], yerr=df["gradamp_std_mean"], fmt='-o', color="grey")
-    plt.plot(df["epoch"], df["gradamp_mean_mean"], color="blue", linewidth=5)
+        plt.errorbar(df["epoch"], df["gradamp_mean_mean"], yerr=df["gradamp_std_mean"], fmt='-o', color="grey", alpha=0.4)
 
-    plt.legend(["mean amplitude of gradcam"])
+    plt.plot(df["epoch"], df["gradamp_mean_mean"], color="blue", linewidth=3)
+
+    plt.legend(["mean amplitude of gradcam", "std amplitdue of gradcam"])
     plt.xlabel("epochs")
     plt.ylabel("amplitude of gradcam")
     plt.title(f"Amplitude of gradcam - {experiment_string}")
@@ -108,11 +109,11 @@ def generate_pct_gutout_pixels_plot(df, experiment_string, save_dir, dataset, on
     os.makedirs(save_dir, exist_ok=True)
 
     if one_sided_error:
-        plt.errorbar(df["epoch"], df["train_num_masked_pixel"]/1024.0, yerr=[np.zeros(len(df["gutout_std_mean"])), df["gutout_std_mean"]/1024.0], color="grey")
+        plt.errorbar(df["epoch"], df["train_num_masked_pixel"]/1024.0, yerr=[np.zeros(len(df["gutout_std_mean"])), df["gutout_std_mean"]/1024.0], color="grey", alpha=0.4)
     else:
-        plt.errorbar(df["epoch"], df["train_num_masked_pixel"]/1024.0, yerr=df["gutout_std_mean"]/1024.0, color="grey")
+        plt.errorbar(df["epoch"], df["train_num_masked_pixel"]/1024.0, yerr=df["gutout_std_mean"]/1024.0, color="grey", alpha=0.4)
 
-    plt.plot(df["epoch"], df["train_num_masked_pixel"]/1024.0, color="blue", linewidth=5)
+    plt.plot(df["epoch"], df["train_num_masked_pixel"]/1024.0, color="blue", linewidth=3)
     
     if dataset == "cifar10":
             cutout_baseline = 0.25
@@ -122,10 +123,10 @@ def generate_pct_gutout_pixels_plot(df, experiment_string, save_dir, dataset, on
         raise ValueError(f"got invalid entry for dataset {dataset}")
 
     #  if dataset == "cifar10":
-    plt.plot(df["epoch"], cutout_baseline * np.ones(len(df["gutout_std_mean"])), color="blue", linewidth=5)
+    plt.plot(df["epoch"], cutout_baseline * np.ones(len(df["gutout_std_mean"])), "--k", linewidth=2)
 
 
-    plt.legend(["mean fraction of gutout pixels", "std fraction of gutout pixels", "cutout"])
+    plt.legend(["mean fraction of gutout pixels", "cutout", "std fraction of gutout pixels"])
     plt.xlabel("epochs")
     plt.ylabel("fraction of gutout pixels")
     plt.title(f"fraction of gutout pixels - {experiment_string}")
