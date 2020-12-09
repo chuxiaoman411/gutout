@@ -13,11 +13,11 @@ if __name__ == "__main__":
     # choose files
     if dataset == "cifar10":
         save_dir = r"results\cifar10\single_run"
-        gutout_file_name = r"C:\Users\benjy\Desktop\DL_results\single_model_gutout_thresh_09\cifar10_cutout_resnet18_a.csv"
+        gutout_file_name = r"C:\Users\benjy\Desktop\DL_results\experiments_new_norm\experiments\cifar10_single_thresh_05\cifar10_cutout_resnet18_a.csv"
         cutout_file_name = r"C:\Users\benjy\Desktop\DL_results\original_cutout\cifar10_resnet18.csv"
     else:
         save_dir = r"results\cifar100\single_run"
-        gutout_file_name = r"C:\Users\benjy\Desktop\DL_results\experiments\cifar100_old_gutout\cifar100_cutout_resnet18_a.csv"
+        gutout_file_name = r"C:\Users\benjy\Desktop\DL_results\experiments_new_norm\experiments\cifar100_single_thresh_06\cifar100_cutout_resnet18_a.csv"
         cutout_file_name = r"C:\Users\benjy\Desktop\DL_results\original_cutout\cifar100_resnet18.csv"
 
 
@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
 
     generate_gradcam_amp_plot(df_model, experiment_string_model, save_dir)
-    generate_pct_gutout_pixels_plot(df_model, experiment_string_model, save_dir)
+    generate_pct_gutout_pixels_plot(df_model, experiment_string_model, save_dir, dataset)
     generate_pct_gutout_pixels_n_gradamp_plot(df_model, experiment_string_model, save_dir)
 
 
