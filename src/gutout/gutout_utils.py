@@ -331,7 +331,7 @@ def gutout_images(grad_cam, images, args):
 def get_gutout_samples(model, grad_cam, epoch, experiment_dir, args):
     if args.dataset == "cifar10":
         path = "sample_imgs_cifar10"
-    elif args.dataset == "cifar10":
+    elif args.dataset == "cifar100":
         path = "sample_imgs_cifar100"
 
     # grad_cam = BatchGradCam(model=model, feature_module=model.layer3,
