@@ -212,10 +212,10 @@ def get_args(hypterparameters_tune=False):
     torch.manual_seed(args.seed)
 
     if args.smoke_test:
-        args.batch_size = 5 #2, 128, 20
-        args.epochs = 20 #6, 20, 50, 120
+        args.batch_size = 16 #64 #2, 128, 20
+        args.epochs = 6 #2 #6, 20, 50, 120
         #max_num_batches means that many training batches, one test batch, and one sample batch
-        max_num_batches = 5 #2, 100, 10
+        max_num_batches = 2 #6 #2, 100, 10
 
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
