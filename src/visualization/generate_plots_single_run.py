@@ -8,7 +8,7 @@ from visualization_utils import load_csv_into_dataframe, generate_accuracy_multi
 
 if __name__ == "__main__":
 
-    dataset = "cifar10"
+    dataset = "cifar100"
 
     # choose files
     if dataset == "cifar10":
